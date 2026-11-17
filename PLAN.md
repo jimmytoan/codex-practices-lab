@@ -14,7 +14,7 @@ approval.**
 - **Harness** (`harness/`): one fresh working copy and one fresh `CODEX_HOME` per run; `codex exec --json`;
   live spend guard; stall detection; one record per run in `results/runs.jsonl`; raw events, Codex rollout
   and diff per run in `results/raw/<run_id>/`; `--resume`; a hard `--cap` per tag.
-- **Self-test** (`python -m harness.selftest`, no model calls): passes, about 100 checks. It shows that:
+- **Self-test** (`python -m harness.selftest`, no model calls): passes, 93 checks. It shows that:
   - every task fails its hidden tests on the untouched repo and passes them with a reference solution;
   - the rule test tells `ShopError` apart from a bare `ValueError`;
   - each seeded bug breaks its own set of hidden tests while still passing the visible suite;
