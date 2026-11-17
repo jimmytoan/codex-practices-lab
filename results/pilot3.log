@@ -1,2 +1,60 @@
 16 runs to do for tag 'pilot'; spent so far $3.15 of $5.00
 === 20261117-190504-base-t11-898d | base | t11-invoice-tax | gpt-6-luna/medium
+    timeout passed=True rule=None oos=[] $0.005 987.9s in=61259 out=1728
+=== 20261117-192134-base-t12-169a | base | t12-search-query | gpt-6-luna/medium
+    timeout passed=True rule=None oos=[] $0.006 1122.9s in=43900 out=2819
+=== 20261117-194018-base-t13-85f8 | base | t13-fifo-costing | gpt-6-luna/medium
+    timeout passed=False rule=None oos=[] $0.000 1072.7s in=0 out=0
+=== 20261117-195811-base-t14-5608 | base | t14-store-days | gpt-6-luna/medium
+    timeout passed=False rule=None oos=[] $0.000 1046.7s in=0 out=0
+=== 20261117-201539-agents_none-t11-dc30 | agents_none | t11-invoice-tax | gpt-6-luna/medium
+    timeout passed=False rule=None oos=[] $0.004 1515.1s in=28786 out=388
+=== 20261117-204056-agents_none-t12-734a | agents_none | t12-search-query | gpt-6-luna/medium
+    ok passed=True rule=None oos=[] $0.009 74.2s in=157438 out=5452
+=== 20261117-204211-agents_none-t13-1629 | agents_none | t13-fifo-costing | gpt-6-luna/medium
+    ok passed=True rule=None oos=[] $0.010 52.2s in=177396 out=4793
+=== 20261117-204304-agents_none-t14-cbd0 | agents_none | t14-store-days | gpt-6-luna/medium
+    ok passed=True rule=None oos=[] $0.008 50.2s in=163051 out=3789
+=== 20261117-204355-prompt_oneline-t11-24ea | prompt_oneline | t11-invoice-tax | gpt-6-luna/medium
+    ok passed=True rule=None oos=[] $0.008 38.2s in=137986 out=3443
+=== 20261117-204435-prompt_oneline-t12-59a8 | prompt_oneline | t12-search-query | gpt-6-luna/medium
+    ok passed=True rule=None oos=[] $0.012 94.3s in=304257 out=7021
+=== 20261117-204610-prompt_oneline-t13-97d7 | prompt_oneline | t13-fifo-costing | gpt-6-luna/medium
+    ok passed=True rule=None oos=[] $0.010 54.2s in=150423 out=4985
+=== 20261117-204705-prompt_oneline-t14-50d8 | prompt_oneline | t14-store-days | gpt-6-luna/medium
+    ok passed=True rule=None oos=[] $0.010 62.2s in=161297 out=5745
+=== 20261117-204809-effort_low-t11-cc5c | effort_low | t11-invoice-tax | gpt-6-luna/low
+    ok passed=True rule=None oos=[] $0.007 32.1s in=132735 out=2601
+=== 20261117-204842-effort_low-t12-d027 | effort_low | t12-search-query | gpt-6-luna/low
+    ok passed=True rule=None oos=[] $0.006 28.1s in=93270 out=2492
+=== 20261117-204911-effort_low-t13-023e | effort_low | t13-fifo-costing | gpt-6-luna/low
+    ok passed=True rule=None oos=[] $0.009 44.2s in=189670 out=4038
+=== 20261117-204956-effort_low-t14-d24b | effort_low | t14-store-days | gpt-6-luna/low
+    ok passed=True rule=None oos=[] $0.006 28.1s in=107947 out=2077
+done in 6321s; tag 'pilot' spend $3.26 of $5.00
+12 runs to do for tag 'pilot'; spent so far $3.26 of $5.00
+=== 20261117-205025-base-t11-3625 | base | t11-invoice-tax | gpt-6.1-terra/medium
+    ok passed=True rule=None oos=[] $0.075 52.1s in=108726 out=3368
+=== 20261117-205119-base-t12-7f69 | base | t12-search-query | gpt-6.1-terra/medium
+    ok passed=True rule=None oos=[] $0.070 56.1s in=102253 out=3306
+=== 20261117-205216-base-t13-e302 | base | t13-fifo-costing | gpt-6.1-terra/medium
+    ok passed=True rule=None oos=[] $0.082 68.2s in=148224 out=4087
+=== 20261117-205325-base-t14-2937 | base | t14-store-days | gpt-6.1-terra/medium
+    ok passed=True rule=None oos=[] $0.070 54.2s in=120999 out=2965
+=== 20261117-205421-prompt_oneline-t11-e3ca | prompt_oneline | t11-invoice-tax | gpt-6.1-terra/medium
+    ok passed=True rule=None oos=[] $0.070 50.1s in=106710 out=2948
+=== 20261117-205512-prompt_oneline-t12-6399 | prompt_oneline | t12-search-query | gpt-6.1-terra/medium
+    ok passed=True rule=None oos=[] $0.079 66.2s in=166492 out=3742
+=== 20261117-205619-prompt_oneline-t13-cbe2 | prompt_oneline | t13-fifo-costing | gpt-6.1-terra/medium
+    ok passed=True rule=None oos=[] $0.086 66.2s in=170739 out=4100
+=== 20261117-205727-prompt_oneline-t14-9467 | prompt_oneline | t14-store-days | gpt-6.1-terra/medium
+    ok passed=True rule=None oos=[] $0.067 42.1s in=104078 out=2559
+=== 20261117-205810-effort_low-t11-febe | effort_low | t11-invoice-tax | gpt-6.1-terra/low
+    ok passed=True rule=None oos=[] $0.058 36.2s in=64928 out=2193
+=== 20261117-205847-effort_low-t12-2e3e | effort_low | t12-search-query | gpt-6.1-terra/low
+    ok passed=True rule=None oos=[] $0.056 32.1s in=79602 out=1892
+=== 20261117-205921-effort_low-t13-dc02 | effort_low | t13-fifo-costing | gpt-6.1-terra/low
+    ok passed=True rule=None oos=[] $0.068 50.1s in=120169 out=2994
+=== 20261117-210012-effort_low-t14-4c45 | effort_low | t14-store-days | gpt-6.1-terra/low
+    ok passed=True rule=None oos=[] $0.056 32.1s in=79847 out=1860
+done in 620s; tag 'pilot' spend $4.09 of $5.00

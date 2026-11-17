@@ -1,0 +1,150 @@
+diff --git a/src/shoplib/search.py b/src/shoplib/search.py
+index 2c1a324..ee30971 100644
+--- a/src/shoplib/search.py
++++ b/src/shoplib/search.py
+@@ -1,6 +1,7 @@
+ """Product search. See docs/search.md."""
+ 
+ from dataclasses import dataclass, field
++import re
+ 
+ 
+ @dataclass
+@@ -13,4 +14,85 @@ class Product:
+ 
+ def search(products: list[Product], query: str) -> list[Product]:
+     """The products that match `query`, in their input order. See docs/search.md."""
+-    raise NotImplementedError
++    terms = _tokenize(query)
++    predicates = [_compile(term) for term in terms]
++    return [product for product in products if all(test(product) for test in predicates)]
++
++
++def _tokenize(query: str) -> list[tuple[str, list[int]]]:
++    """Return each token and the positions of its unquoted characters."""
++    result = []
++    chars: list[str] = []
++    unquoted: list[int] = []
++    quoted = False
++
++    def finish() -> None:
++        if chars:
++            result.append(("".join(chars), unquoted.copy()))
++            chars.clear()
++            unquoted.clear()
++
++    for char in query:
++        if char == '"':
++            quoted = not quoted
++        elif char.isspace() and not quoted:
++            finish()
++        else:
++            if not quoted:
++                unquoted.append(len(chars))
++            chars.append(char)
++    if quoted:
++        raise ValueError("unclosed quote")
++    finish()
++    return result
++
++
++def _compile(token: tuple[str, list[int]]):
++    text, unquoted_positions = token
++    unquoted = set(unquoted_positions)
++    negate = bool(text and text[0] == "-" and 0 in unquoted)
++    if negate:
++        text = text[1:]
++        unquoted = {position - 1 for position in unquoted if position > 0}
++        if not text:
++            raise ValueError("missing term after '-' ")
++
++    def contains(value: str):
++        return lambda product: value.casefold() in product.name.casefold()
++
++    field_colon = next((i for i, char in enumerate(text) if char == ":" and i in unquoted), None)
++    if field_colon is not None:
++        field_name, value = text[:field_colon], text[field_colon + 1:]
++        if field_name not in {"sku", "name", "tag"}:
++            raise ValueError(f"unknown search field: {field_name}")
++        if not value:
++            raise ValueError("empty field value")
++        folded = value.casefold()
++        if field_name == "name":
++            predicate = contains(value)
++        elif field_name == "sku":
++            prefix = value.endswith("*")
++            expected = value[:-1] if prefix else value
++            predicate = lambda product: (product.sku.casefold().startswith(expected.casefold())
++                                          if prefix else product.sku.casefold() == folded)
++        else:
++            prefix = value.endswith("*")
++            expected = value[:-1] if prefix else value
++            predicate = lambda product: any(tag.casefold().startswith(expected.casefold()) if prefix
++                                            else tag.casefold() == folded for tag in product.tags)
++    else:
++        match = re.fullmatch(r"price(<=|>=|<|>|=)(.*)", text)
++        if match:
++            op, raw = match.groups()
++            if not re.fullmatch(r"[0-9]+", raw):
++                raise ValueError("price comparison requires whole-number cents")
++            amount = int(raw)
++            ops = {"<": lambda n: n < amount, "<=": lambda n: n <= amount,
++                   ">": lambda n: n > amount, ">=": lambda n: n >= amount,
++                   "=": lambda n: n == amount}
++            predicate = lambda product: ops[op](product.price_cents)
++        else:
++            predicate = contains(text)
++    if negate:
++        return lambda product: not predicate(product)
++    return predicate
+diff --git a/tests/test_search.py b/tests/test_search.py
+new file mode 100644
+index 0000000..ba42c9b
+--- /dev/null
++++ b/tests/test_search.py
+@@ -0,0 +1,45 @@
++import pytest
++
++from shoplib.search import Product, search
++
++
++@pytest.fixture
++def products():
++    return [
++        Product("MUG-RED", "Red blue mug", 1200, ["drinkware", "sale"]),
++        Product("MUG-BLUE", "Blue mug", 999, ["Drinkware"]),
++        Product("CUP", "Cup holder", 500, ["sale"]),
++    ]
++
++
++def test_bare_and_quoted_phrases(products):
++    assert search(products, "blue") == products[:2]
++    assert search(products, '"blue mug"') == products[:2]
++    assert search(products, 'name:"red blue"') == products[:1]
++    assert search(products, '"mug cup"') == []
++
++
++def test_fields_prefixes_and_case_insensitive_matching(products):
++    assert search(products, "sku:mug-red") == products[:1]
++    assert search(products, "sku:MUG-*") == products[:2]
++    assert search(products, "tag:DRINK*") == products[:2]
++    assert search(products, "tag:Sale") == [products[0], products[2]]
++    assert search(products, "name:BLUE") == products[:2]
++    assert search(products, '"sku:mug-red"') == []
++
++
++def test_conjunction_negation_and_price(products):
++    assert search(products, "mug -tag:sale") == [products[1]]
++    assert search(products, "price>=999 price<1200") == [products[1]]
++    assert search(products, "price=500") == [products[2]]
++    assert search(products, "price>1200") == []
++    assert search(products, "   \t") == products
++
++
++@pytest.mark.parametrize("query", [
++    "color:red", "price:5", "tag:", "sku:", "-", '"unclosed',
++    "price>", "price>=abc", "price=1.5", "price< -2",
++])
++def test_invalid_queries_raise_value_error(products, query):
++    with pytest.raises(ValueError):
++        search(products, query)

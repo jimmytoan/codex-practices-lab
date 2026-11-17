@@ -18,9 +18,9 @@ from .config import CONDITIONS_BY_NAME, RESULTS, TESTS
 from .tasks import RULE_TASKS, TASKS
 
 
-def load(tag: str) -> tuple[list[dict], list[dict]]:
+def load(tag: str, model: str | None = None) -> tuple[list[dict], list[dict]]:
     rows = [json.loads(l) for l in (RESULTS / "runs.jsonl").read_text().splitlines() if l.strip()]
-    rows = [r for r in rows if r["tag"] == tag]
+    rows = [r for r in rows if r["tag"] == tag and (model is None or r["model"] == model)]
     return [r for r in rows if r["status"] != "error"], [r for r in rows if r["status"] == "error"]
 
 
@@ -126,13 +126,13 @@ def failures(rows: list[dict]) -> str:
     return "\n".join(out) or "- none"
 
 
-def render(tag: str) -> str:
-    rows, errored = load(tag)
+def render(tag: str, model: str | None = None) -> str:
+    rows, errored = load(tag, model)
     spend_all = sum(r["cost_usd"] for r in rows + errored)
     spend_low = sum(r["cost_usd_low"] for r in rows + errored)
     versions = sorted({r["codex_version"] for r in rows})
     models = sorted({r["model"] for r in rows})
-    parts = [f"# Results: tag `{tag}`\n",
+    parts = [f"# Results: tag `{tag}`" + (f", model `{model}`" if model else "") + "\n",
              f"- Runs counted: {len(rows)}. Excluded for provider/harness errors: {len(errored)}.",
              f"- Spend: ${spend_all:.2f} upper bound (cache writes at the 12h price), ${spend_low:.2f} at the 30m price, "
              "errored runs included.",
@@ -159,9 +159,10 @@ def render(tag: str) -> str:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--tag", required=True)
+    ap.add_argument("--model")
     ap.add_argument("--out")
     args = ap.parse_args()
-    text = render(args.tag)
+    text = render(args.tag, args.model)
     if args.out:
         (RESULTS.parent / args.out).write_text(text)
     print(text)

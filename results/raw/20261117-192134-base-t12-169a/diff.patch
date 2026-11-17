@@ -1,0 +1,120 @@
+diff --git a/src/shoplib/search.py b/src/shoplib/search.py
+index 2c1a324..5750eee 100644
+--- a/src/shoplib/search.py
++++ b/src/shoplib/search.py
+@@ -2,6 +2,8 @@
+ 
+ from dataclasses import dataclass, field
+ 
++from shoplib.errors import ShopError
++
+ 
+ @dataclass
+ class Product:
+@@ -13,4 +15,105 @@ class Product:
+ 
+ def search(products: list[Product], query: str) -> list[Product]:
+     """The products that match `query`, in their input order. See docs/search.md."""
+-    raise NotImplementedError
++    terms = _tokenize(query)
++    predicates = [_compile_term(term) for term in terms]
++    return [product for product in products if all(matches(product) for matches in predicates)]
++
++
++def _tokenize(query: str) -> list[str]:
++    """Split on unquoted whitespace and remove quote delimiters."""
++    terms: list[str] = []
++    chars: list[str] = []
++    quoted = False
++    active = False
++
++    for char in query:
++        if char == '"':
++            quoted = not quoted
++            active = True
++        elif char.isspace() and not quoted:
++            if active:
++                terms.append("".join(chars))
++                chars.clear()
++                active = False
++        else:
++            chars.append(char)
++            active = True
++
++    if quoted:
++        raise ShopError("unclosed quote in search query")
++    if active:
++        terms.append("".join(chars))
++    return terms
++
++
++def _compile_term(term: str):
++    negated = term.startswith("-")
++    if negated:
++        term = term[1:]
++        if not term:
++            raise ShopError("'-' must be followed by a search term")
++
++    price_predicate = _price_predicate(term)
++    if price_predicate is not None:
++        predicate = price_predicate
++    elif ":" in term:
++        field_name, value = term.split(":", 1)
++        if field_name not in {"sku", "name", "tag"}:
++            raise ShopError(f"unknown search field: {field_name}")
++        if not value:
++            raise ShopError(f"empty value for search field: {field_name}")
++
++        if field_name == "name":
++            needle = value.casefold()
++            predicate = lambda product: needle in product.name.casefold()
++        elif field_name == "sku":
++            predicate = _exact_or_prefix(value, lambda product: product.sku)
++        else:
++            predicate = _exact_or_prefix(value, lambda product: product.tags)
++    else:
++        needle = term.casefold()
++        predicate = lambda product: needle in product.name.casefold()
++
++    if not negated:
++        return predicate
++    return lambda product: not predicate(product)
++
++
++def _exact_or_prefix(value: str, get_values):
++    prefix = value.endswith("*")
++    expected = (value[:-1] if prefix else value).casefold()
++
++    def matches(product: Product) -> bool:
++        candidates = get_values(product)
++        if isinstance(candidates, str):
++            candidates = (candidates,)
++        if prefix:
++            return any(candidate.casefold().startswith(expected) for candidate in candidates)
++        return any(candidate.casefold() == expected for candidate in candidates)
++
++    return matches
++
++
++def _price_predicate(term: str):
++    if not term.startswith("price"):
++        return None
++
++    remainder = term[5:]
++    operator = next((op for op in ("<=", ">=", "<", ">", "=") if remainder.startswith(op)), None)
++    if operator is None:
++        return None
++
++    value = remainder[len(operator):]
++    if not value.isdecimal():
++        raise ShopError("price comparison must use a whole number of cents")
++    cents = int(value)
++    comparisons = {
++        "<": lambda price: price < cents,
++        "<=": lambda price: price <= cents,
++        ">": lambda price: price > cents,
++        ">=": lambda price: price >= cents,
++        "=": lambda price: price == cents,
++    }
++    compare = comparisons[operator]
++    return lambda product: compare(product.price_cents)

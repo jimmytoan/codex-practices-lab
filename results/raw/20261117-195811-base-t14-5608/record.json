@@ -1,0 +1,68 @@
+{
+  "run_id": "20261117-195811-base-t14-5608",
+  "ts": "2026-11-17T12:15:39+00:00",
+  "tag": "pilot",
+  "condition": "base",
+  "task": "t14-store-days",
+  "model": "gpt-6-luna",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "direct",
+  "variant": "",
+  "status": "timeout",
+  "error": "timeout",
+  "invocations": [
+    {
+      "status": "timeout",
+      "wall_s": 1046.7,
+      "usage": {},
+      "exit": -15,
+      "stderr_tail": "Reading additional input from stdin...\n"
+    }
+  ],
+  "usage": {
+    "input_tokens": 0,
+    "cached_input_tokens": 0,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 0,
+    "reasoning_output_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "cost_usd_low": 0.0,
+  "wall_s": 1046.7,
+  "passed": false,
+  "hidden": {
+    "passed": [],
+    "failed": [
+      "test_early_morning_belongs_to_previous_day",
+      "test_empty",
+      "test_exactly_at_start_hour_is_new_day",
+      "test_gaps_filled_with_zero_and_sorted",
+      "test_naive_timestamp_is_an_error",
+      "test_offsets_in_timestamps",
+      "test_other_offset_and_start",
+      "test_totals_and_refunds",
+      "test_year_boundary"
+    ],
+    "error": null,
+    "ok": false
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "21 passed in 0.05s"
+    ]
+  },
+  "rule_followed": null,
+  "changed_files": [],
+  "out_of_scope": [],
+  "commands": 0,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": null,
+    "agents_loaded_text_tail": null,
+    "turns": []
+  }
+}

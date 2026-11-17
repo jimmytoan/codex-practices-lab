@@ -126,7 +126,7 @@ def count_lines(path: Path | None) -> int:
 
 def run(prompt: str, *, cwd: Path, codex_home: Path, model: str, effort: str, sandbox: str,
         resume_thread: str | None = None, output_schema: Path | None = None, events_out: Path | None = None,
-        timeout_s: int = 900, spend_cap_usd: float = 1.0) -> Invocation:
+        timeout_s: int = 900, spend_cap_usd: float = 1.0, stall_s: int = 300) -> Invocation:
     """One `codex exec` (or `codex exec resume`) invocation, killed if it runs past timeout_s or its own
     upper-bound spend passes spend_cap_usd."""
     common = ["--json", "-m", model, "-c", f'model_reasoning_effort="{effort}"', "-c", "allow_login_shell=false"]
@@ -151,8 +151,12 @@ def run(prompt: str, *, cwd: Path, codex_home: Path, model: str, effort: str, sa
 
     killed = None
     thread_id = resume_thread
+    last_progress, seen = time.time(), (0, 0)
     while proc.poll() is None:
         time.sleep(2)
+        progress = (len(lines), rollout.stat().st_size if rollout and rollout.exists() else 0)
+        if progress != seen:
+            seen, last_progress = progress, time.time()
         if thread_id is None:
             for line in list(lines[:3]):
                 if '"thread.started"' in line:
@@ -161,6 +165,8 @@ def run(prompt: str, *, cwd: Path, codex_home: Path, model: str, effort: str, sa
             rollout = find_rollout(codex_home, thread_id)
         if rollout and rollout_spend(rollout, start_line, model) > spend_cap_usd:
             killed = "cost_cap"
+        elif time.time() - last_progress > stall_s:
+            killed = "stall"  # no event and no rollout write for stall_s: the provider stream hung
         elif time.time() - t0 > timeout_s:
             killed = "timeout"
         if killed:
@@ -180,8 +186,9 @@ def run(prompt: str, *, cwd: Path, codex_home: Path, model: str, effort: str, sa
     inv.stderr_tail = "".join(stderr)[-1500:]
     inv.thread_id = inv.thread_id or thread_id
     if killed:
-        inv.status = killed
-        inv.error = killed
+        # a stall is the provider's failure, not the condition's: report it as an error so it is excluded and redone
+        inv.status = "error" if killed == "stall" else killed
+        inv.error = f"stall: no output for {stall_s}s" if killed == "stall" else killed
         # no turn.completed: take the usage the rollout recorded before the kill
         if rollout:
             inv.usage = rollout_usage(rollout, start_line)

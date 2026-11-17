@@ -1,0 +1,179 @@
+diff --git a/src/shoplib/search.py b/src/shoplib/search.py
+index 2c1a324..406fd82 100644
+--- a/src/shoplib/search.py
++++ b/src/shoplib/search.py
+@@ -1,6 +1,11 @@
+ """Product search. See docs/search.md."""
+ 
+ from dataclasses import dataclass, field
++import operator
++import re
++from collections.abc import Callable
++
++from .errors import ShopError
+ 
+ 
+ @dataclass
+@@ -13,4 +18,83 @@ class Product:
+ 
+ def search(products: list[Product], query: str) -> list[Product]:
+     """The products that match `query`, in their input order. See docs/search.md."""
+-    raise NotImplementedError
++    terms = [_parse_term(text, unquoted) for text, unquoted in _tokens(query)]
++    return [product for product in products if all(term(product) for term in terms)]
++
++
++def _tokens(query: str) -> list[tuple[str, list[bool]]]:
++    """Split on unquoted whitespace and retain which characters were quoted."""
++    tokens: list[tuple[str, list[bool]]] = []
++    chars: list[str] = []
++    unquoted: list[bool] = []
++    in_quote = False
++    started = False
++    for char in query:
++        if char == '"':
++            in_quote = not in_quote
++            started = True
++        elif char.isspace() and not in_quote:
++            if started:
++                tokens.append(("".join(chars), unquoted))
++                chars, unquoted = [], []
++                started = False
++        else:
++            chars.append(char)
++            unquoted.append(not in_quote)
++            started = True
++    if in_quote:
++        raise ShopError("unclosed quote")
++    if started:
++        tokens.append(("".join(chars), unquoted))
++    return tokens
++
++
++def _parse_term(text: str, unquoted: list[bool]) -> Callable[[Product], bool]:
++    negate = bool(text and text[0] == "-" and unquoted[0])
++    if negate:
++        text, unquoted = text[1:], unquoted[1:]
++        if not text:
++            raise ShopError("empty negated term")
++
++    colon = next((i for i, char in enumerate(text) if char == ":" and unquoted[i]), -1)
++    if colon != -1:
++        field_name, value = text[:colon], text[colon + 1:]
++        if field_name not in ("sku", "name", "tag"):
++            raise ShopError("unknown search field")
++        if not value:
++            raise ShopError("empty search field value")
++        value = value.casefold()
++        if field_name == "name":
++            match = lambda product: value in product.name.casefold()
++        else:
++            prefix = value.endswith("*")
++            target = value[:-1] if prefix else value
++
++            def matches(candidate: str) -> bool:
++                candidate = candidate.casefold()
++                return candidate.startswith(target) if prefix else candidate == target
++
++            if field_name == "sku":
++                match = lambda product: matches(product.sku)
++            else:
++                match = lambda product: any(matches(tag) for tag in product.tags)
++    else:
++        price = re.fullmatch(r"price(<=|>=|<|>|=)(.*)", text, re.DOTALL)
++        if price and all(unquoted[:price.start(2)]):
++            comparison, value = price.groups()
++            if not re.fullmatch(r"[0-9]+", value):
++                raise ShopError("price must be a whole number of cents")
++            try:
++                amount = int(value)
++            except ValueError as exc:
++                raise ShopError("price must be a whole number of cents") from exc
++            compare = {"<": operator.lt, "<=": operator.le, ">": operator.gt,
++                       ">=": operator.ge, "=": operator.eq}[comparison]
++            match = lambda product: compare(product.price_cents, amount)
++        else:
++            value = text.casefold()
++            match = lambda product: value in product.name.casefold()
++
++    if negate:
++        return lambda product: not match(product)
++    return match
+diff --git a/tests/test_search.py b/tests/test_search.py
+new file mode 100644
+index 0000000..fce651b
+--- /dev/null
++++ b/tests/test_search.py
+@@ -0,0 +1,72 @@
++import pytest
++
++from shoplib.errors import ShopError
++from shoplib.search import Product, search
++
++
++@pytest.fixture
++def products():
++    return [
++        Product("MUG-1", "Blue Mug Large", 1000, ["Sale", "Kitchenware"]),
++        Product("mug-2", "Red mug", 1500, ["Kitchen"]),
++        Product("PLATE-1", "Blue Plate", 1000, ["sale"]),
++        Product("STAR*X", "Price: special", 500),
++    ]
++
++
++@pytest.mark.parametrize("query", ["", "  \t\n  "])
++def test_empty_query_returns_all_in_order(products, query):
++    assert search(products, query) == products
++    assert search(products, query) is not products
++
++
++@pytest.mark.parametrize(
++    ("query", "indices"),
++    [
++        ("BLUE", [0, 2]),
++        ('"bLuE mUg"', [0]),
++        ('name:"blue mug"', [0]),
++        ("mug blue", [0]),
++        ("sku:mug-1", [0]),
++        ("sku:MUG-*", [0, 1]),
++        ("sku:STAR*X", [3]),
++        ("tag:sale", [0, 2]),
++        ("tag:kitchen", [1]),
++        ("tag:kitchen*", [0, 1]),
++        ("name:PLATE", [2]),
++        ("name:mug*", []),
++        ("mug -tag:sale", [1]),
++        ('-"blue mug"', [1, 2, 3]),
++        ('"Price: special"', [3]),
++        ('name:"Price: special"', [3]),
++        ("price<1000", [3]),
++        ("price<=1000", [0, 2, 3]),
++        ("price>1000", [1]),
++        ("price>=1000", [0, 1, 2]),
++        ("price=1000", [0, 2]),
++        ("-price=1000", [1, 3]),
++        ("sku:*", [0, 1, 2, 3]),
++        ("tag:*", [0, 1, 2]),
++    ],
++)
++def test_matching_terms(products, query, indices):
++    assert search(products, query) == [products[i] for i in indices]
++
++
++@pytest.mark.parametrize(
++    "query",
++    ["other:value", "price:5", "tag:", 'name:""', "sku:", "-", '-""',
++     '"unclosed', 'name:"unclosed', "price>", "price>=1.5", "price=abc",
++     "price< -1", "price>-1", "price==1", "price>=1x", 'price>="1\n"',
++     "missing tag:"],
++)
++@pytest.mark.parametrize("empty_products", [True, False])
++def test_invalid_queries_raise_shop_error(products, query, empty_products):
++    with pytest.raises(ShopError):
++        search([] if empty_products else products, query)
++
++
++def test_colons_and_operators_inside_quotes_are_literal():
++    products = [Product("x", "price>=100 -tag:sale foo:bar", 50)]
++    for query in ['"price>=100"', '"-tag:sale"', '"foo:bar"']:
++        assert search(products, query) == products

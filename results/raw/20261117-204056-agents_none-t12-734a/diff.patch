@@ -1,0 +1,184 @@
+diff --git a/src/shoplib/search.py b/src/shoplib/search.py
+index 2c1a324..81ac210 100644
+--- a/src/shoplib/search.py
++++ b/src/shoplib/search.py
+@@ -1,5 +1,6 @@
+ """Product search. See docs/search.md."""
+ 
++import re
+ from dataclasses import dataclass, field
+ 
+ 
+@@ -13,4 +14,93 @@ class Product:
+ 
+ def search(products: list[Product], query: str) -> list[Product]:
+     """The products that match `query`, in their input order. See docs/search.md."""
+-    raise NotImplementedError
++    terms = _tokenize(query)
++    predicates = [_compile_term(term) for term in terms]
++    return [product for product in products if all(predicate(product) for predicate in predicates)]
++
++
++def _tokenize(query: str) -> list[str]:
++    """Split on unquoted whitespace and remove quote delimiters."""
++    terms: list[str] = []
++    current: list[str] = []
++    quoted = False
++    in_term = False
++
++    for char in query:
++        if char == '"':
++            quoted = not quoted
++            in_term = True
++        elif char.isspace() and not quoted:
++            if in_term:
++                terms.append("".join(current))
++                current = []
++                in_term = False
++        else:
++            current.append(char)
++            in_term = True
++
++    if quoted:
++        raise ValueError("unclosed quote")
++    if in_term:
++        terms.append("".join(current))
++    return terms
++
++
++def _compile_term(term: str):
++    negate = term.startswith("-")
++    if negate:
++        term = term[1:]
++        if not term:
++            raise ValueError("negation requires a term")
++
++    price_match = re.match(r"^price(<=|>=|<|>|=)(.*)$", term)
++    if price_match:
++        operator, raw_value = price_match.groups()
++        if not re.fullmatch(r"[0-9]+", raw_value):
++            raise ValueError("price comparison requires a whole number of cents")
++        cents = int(raw_value)
++        compare = {
++            "<": lambda price: price < cents,
++            "<=": lambda price: price <= cents,
++            ">": lambda price: price > cents,
++            ">=": lambda price: price >= cents,
++            "=": lambda price: price == cents,
++        }[operator]
++        predicate = lambda product: compare(product.price_cents)
++    elif ":" in term:
++        field_name, value = term.split(":", 1)
++        if field_name not in {"sku", "name", "tag"}:
++            raise ValueError(f"unknown search field: {field_name}")
++        if value == "":
++            raise ValueError("field value cannot be empty")
++
++        if field_name == "name":
++            needle = value.casefold()
++            predicate = lambda product: needle in product.name.casefold()
++        elif field_name == "sku":
++            predicate = _equality_predicate(value, lambda product: product.sku)
++        else:
++            predicate = _tag_predicate(value)
++    else:
++        needle = term.casefold()
++        predicate = lambda product: needle in product.name.casefold()
++
++    if negate:
++        return lambda product: not predicate(product)
++    return predicate
++
++
++def _equality_predicate(value: str, get_value):
++    if value.endswith("*"):
++        prefix = value[:-1].casefold()
++        return lambda product: get_value(product).casefold().startswith(prefix)
++    expected = value.casefold()
++    return lambda product: get_value(product).casefold() == expected
++
++
++def _tag_predicate(value: str):
++    if value.endswith("*"):
++        prefix = value[:-1].casefold()
++        return lambda product: any(tag.casefold().startswith(prefix) for tag in product.tags)
++    expected = value.casefold()
++    return lambda product: any(tag.casefold() == expected for tag in product.tags)
+diff --git a/tests/test_search.py b/tests/test_search.py
+new file mode 100644
+index 0000000..b7189fe
+--- /dev/null
++++ b/tests/test_search.py
+@@ -0,0 +1,72 @@
++import pytest
++
++from shoplib.search import Product, search
++
++
++@pytest.fixture
++def products():
++    return [
++        Product("MUG-001", "Blue Ceramic Mug", 1250, ["kitchen", "Sale"]),
++        Product("MUG-002", "Blue Travel Cup", 900, ["travel"]),
++        Product("PLATE-001", "White Plate", 1500, ["kitchen"]),
++    ]
++
++
++def test_empty_query_matches_every_product_in_input_order(products):
++    assert search(products, " \t\n") == products
++
++
++def test_bare_words_and_quoted_phrases_are_case_insensitive_substrings(products):
++    assert search(products, "BLUE mug") == [products[0]]
++    assert search(products, '"blue ceramic"') == [products[0]]
++    assert search(products, 'name:"blue travel"') == [products[1]]
++
++
++def test_sku_and_tag_fields_match_case_insensitively(products):
++    assert search(products, "sku:mug-001") == [products[0]]
++    assert search(products, "tag:SALE") == [products[0]]
++
++
++def test_sku_and_tag_final_star_are_prefix_matches(products):
++    assert search(products, "sku:MUG-*") == products[:2]
++    assert search(products, "tag:kit*") == [products[0], products[2]]
++    assert search(products, "sku:M*G-001") == []
++
++
++def test_terms_are_conjunctive_and_negation_inverts_a_term(products):
++    assert search(products, "blue -tag:travel") == [products[0]]
++    assert search(products, "-price>=1000") == [products[1]]
++
++
++@pytest.mark.parametrize(
++    ("query", "expected"),
++    [
++        ("price<1000", [1]),
++        ("price<=900", [1]),
++        ("price>1250", [2]),
++        ("price>=1250", [0, 2]),
++        ("price=900", [1]),
++    ],
++)
++def test_price_comparisons(products, query, expected):
++    assert search(products, query) == [products[index] for index in expected]
++
++
++@pytest.mark.parametrize(
++    "query",
++    [
++        "price:5",
++        "unknown:value",
++        "tag:",
++        "sku:",
++        "name:",
++        "-",
++        '"unclosed',
++        "price>=",
++        "price<one",
++        "price=-1",
++    ],
++)
++def test_invalid_queries_raise_value_error(products, query):
++    with pytest.raises(ValueError):
++        search(products, query)

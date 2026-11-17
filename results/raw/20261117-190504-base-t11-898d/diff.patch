@@ -1,0 +1,89 @@
+diff --git a/src/shoplib/invoice.py b/src/shoplib/invoice.py
+index 5d1398c..1934bca 100644
+--- a/src/shoplib/invoice.py
++++ b/src/shoplib/invoice.py
+@@ -1,5 +1,8 @@
+ """Invoices: coupon allocation and tax. See docs/invoicing.md."""
+ 
++from .errors import ShopError
++from .money import percent_of
++
+ # Tax rates in percent, by region and product category.
+ TAX_RATES = {
+     "DE": {"standard": 19, "food": 7, "books": 7},
+@@ -10,4 +13,74 @@ TAX_RATES = {
+ 
+ def build_invoice(lines, coupon_cents: int, shipping_cents: int, region: str) -> dict:
+     """Build an invoice for an order. See docs/invoicing.md."""
+-    raise NotImplementedError
++    if region not in TAX_RATES:
++        raise ShopError(f"unknown region {region!r}")
++    if not lines:
++        raise ShopError("lines must not be empty")
++    if coupon_cents < 0:
++        raise ShopError("coupon must not be negative")
++    if shipping_cents < 0:
++        raise ShopError("shipping must not be negative")
++
++    rates = TAX_RATES[region]
++    normalized_lines = []
++    gross_amounts = []
++    for line in lines:
++        try:
++            sku, unit_price_cents, qty, category = line
++        except (TypeError, ValueError):
++            raise ShopError("each line must contain sku, price, qty and category") from None
++        if category not in rates:
++            raise ShopError(f"unknown category {category!r} for region {region!r}")
++        if qty < 1:
++            raise ShopError("quantity must be at least 1")
++        if unit_price_cents < 0:
++            raise ShopError("price must not be negative")
++        gross = unit_price_cents * qty
++        normalized_lines.append((sku, category))
++        gross_amounts.append(gross)
++
++    total_gross = sum(gross_amounts)
++    coupon = min(coupon_cents, total_gross)
++    discounts = [0] * len(gross_amounts)
++    if total_gross:
++        remainders = []
++        for index, gross in enumerate(gross_amounts):
++            discounts[index], remainder = divmod(coupon * gross, total_gross)
++            remainders.append((remainder, index))
++
++        cents_left = coupon - sum(discounts)
++        for _, index in sorted(remainders, key=lambda item: (-item[0], item[1]))[:cents_left]:
++            discounts[index] += 1
++
++    invoice_lines = []
++    line_taxes = 0
++    for (sku, category), gross, discount in zip(normalized_lines, gross_amounts, discounts):
++        net = gross - discount
++        tax = percent_of(net, rates[category])
++        invoice_lines.append({
++            "sku": sku,
++            "gross_cents": gross,
++            "discount_cents": discount,
++            "net_cents": net,
++            "tax_cents": tax,
++        })
++        line_taxes += tax
++
++    shipping_tax = (
++        percent_of(shipping_cents, rates["standard"])
++        if any(rates[category] > 0 for _, category in normalized_lines)
++        else 0
++    )
++    total = (
++        sum(line["net_cents"] for line in invoice_lines)
++        + line_taxes
++        + shipping_cents
++        + shipping_tax
++    )
++    return {
++        "lines": invoice_lines,
++        "shipping_cents": shipping_cents,
++        "shipping_tax_cents": shipping_tax,
++        "total_cents": total,
++    }
