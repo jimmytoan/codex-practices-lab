@@ -124,7 +124,7 @@ check(may_start(4.0, 0.0, 0.75, 5.0) and not may_start(4.3, 0.0, 0.75, 5.0) and 
 
 # 7. The matrix
 c = cells(CONDITION_LIST, list(TASKS))
-check(len(c) == 96, f"one repeat of the full matrix is 96 runs (got {len(c)})")
+check(len(c) == 140, f"one repeat of the full matrix is 140 runs (got {len(c)})")
 
 print("\nSELF-TEST", "PASSED" if ok else "FAILED")
 sys.exit(0 if ok else 1)

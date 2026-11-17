@@ -1,0 +1,67 @@
+diff --git a/src/shoplib/textutil.py b/src/shoplib/textutil.py
+index 061dc23..d082fb9 100644
+--- a/src/shoplib/textutil.py
++++ b/src/shoplib/textutil.py
+@@ -1,6 +1,9 @@
+ """Text helpers for URLs and listings."""
+ 
+ import re
++import unicodedata
++
++from shoplib.errors import ShopError
+ 
+ 
+ def slugify(text: str, max_len: int = 40) -> str:
+@@ -11,12 +14,17 @@ def slugify(text: str, max_len: int = 40) -> str:
+     - Every run of characters other than a-z and 0-9 becomes one '-'.
+     - No leading or trailing '-'.
+     - At most `max_len` characters, cut after the other steps; a cut never
+-      leaves a trailing '-'.
+-    - If nothing is left, the slug is 'n-a'.
++      leaves a trailing '-'. `max_len` must be a non-negative integer.
++    - If nothing is left before truncation, the slug is 'n-a'.
+     """
+-    slug = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
++    if not isinstance(max_len, int) or isinstance(max_len, bool) or max_len < 0:
++        raise ShopError("max_len must be a non-negative integer")
++
++    decomposed = unicodedata.normalize("NFKD", text.lower())
++    unaccented = "".join(char for char in decomposed if not unicodedata.combining(char))
++    slug = re.sub(r"[^a-z0-9]+", "-", unaccented).strip("-") or "n-a"
+     slug = slug[:max_len].rstrip("-")
+-    return slug or "n-a"
++    return slug
+ 
+ 
+ def truncate(text: str, max_len: int) -> str:
+diff --git a/tests/test_textutil.py b/tests/test_textutil.py
+index 4c83bb9..6d229ff 100644
+--- a/tests/test_textutil.py
++++ b/tests/test_textutil.py
+@@ -1,3 +1,6 @@
++import pytest
++
++from shoplib.errors import ShopError
+ from shoplib.textutil import slugify, truncate
+ 
+ 
+@@ -6,6 +9,19 @@ def test_slugify_basic():
+     assert slugify("!!!") == "n-a"
+ 
+ 
++def test_slugify_unaccents_latin_letters_and_truncates_cleanly():
++    assert slugify("Crème Brûlée") == "creme-brulee"
++    assert slugify("Cafe\u0301") == "cafe"
++    assert slugify("Crème Brûlée", max_len=6) == "creme"
++    assert slugify("!!!", max_len=2) == "n"
++    assert slugify("!!!", max_len=0) == ""
++
++
++def test_slugify_rejects_negative_max_len():
++    with pytest.raises(ShopError):
++        slugify("mug", max_len=-1)
++
++
+ def test_truncate():
+     assert truncate("hello world", 8) == "hello..."
+     assert truncate("short", 8) == "short"

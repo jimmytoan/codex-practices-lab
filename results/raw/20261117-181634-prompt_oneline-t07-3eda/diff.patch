@@ -1,0 +1,112 @@
+diff --git a/src/shoplib/discounts.py b/src/shoplib/discounts.py
+index d2804c4..783a5dd 100644
+--- a/src/shoplib/discounts.py
++++ b/src/shoplib/discounts.py
+@@ -3,6 +3,7 @@
+ from dataclasses import dataclass
+ from datetime import date
+ 
++from .errors import ShopError
+ from .money import percent_of
+ 
+ 
+@@ -30,4 +31,35 @@ def apply_coupon(subtotal_cents: int, coupon: Coupon) -> int:
+ 
+ def apply_coupons(subtotal_cents: int, coupons: list[Coupon], today: date) -> tuple[int, list[str]]:
+     """Apply several coupons following the rules in docs/discounts.md."""
+-    raise NotImplementedError
++    if subtotal_cents < 0:
++        raise ShopError("subtotal must not be negative")
++
++    eligible = [
++        coupon
++        for coupon in coupons
++        if (coupon.expires is None or today <= coupon.expires)
++        and subtotal_cents >= coupon.min_subtotal_cents
++    ]
++
++    for coupon in eligible:
++        if coupon.kind not in ("percent", "fixed"):
++            raise ShopError(f"unknown coupon kind {coupon.kind!r}")
++
++    percent_coupons = [coupon for coupon in eligible if coupon.kind == "percent"]
++    chosen_percent = min(
++        percent_coupons,
++        key=lambda coupon: (-coupon.value, coupon.code),
++        default=None,
++    )
++    fixed_coupons = [coupon for coupon in eligible if coupon.kind == "fixed"]
++
++    total_cents = subtotal_cents
++    applied_codes = []
++    if chosen_percent is not None:
++        total_cents -= percent_of(subtotal_cents, chosen_percent.value)
++        applied_codes.append(chosen_percent.code)
++
++    total_cents -= sum(coupon.value for coupon in fixed_coupons)
++    applied_codes.extend(coupon.code for coupon in fixed_coupons)
++
++    return max(total_cents, 0), sorted(applied_codes)
+diff --git a/tests/test_discounts.py b/tests/test_discounts.py
+index 5b20e73..30adfa7 100644
+--- a/tests/test_discounts.py
++++ b/tests/test_discounts.py
+@@ -1,4 +1,10 @@
++from datetime import date
++
++import pytest
++
++from shoplib.errors import ShopError
+ from shoplib.discounts import Coupon, apply_coupon
++from shoplib.discounts import apply_coupons
+ 
+ 
+ def test_percent():
+@@ -7,3 +13,47 @@ def test_percent():
+ 
+ def test_fixed_never_negative():
+     assert apply_coupon(300, Coupon("FIVE", "fixed", 500)) == 0
++
++
++def test_apply_coupons_chooses_best_percent_then_all_fixed():
++    coupons = [
++        Coupon("TEN", "percent", 10),
++        Coupon("FIFTEEN", "percent", 15),
++        Coupon("FIXED-B", "fixed", 125),
++        Coupon("FIXED-A", "fixed", 75),
++    ]
++
++    assert apply_coupons(2000, coupons, date(2026, 1, 1)) == (
++        1500,
++        ["FIFTEEN", "FIXED-A", "FIXED-B"],
++    )
++
++
++def test_apply_coupons_percent_tie_uses_code_order():
++    coupons = [
++        Coupon("ZED", "percent", 20),
++        Coupon("ALPHA", "percent", 20),
++    ]
++
++    assert apply_coupons(1000, coupons, date(2026, 1, 1)) == (800, ["ALPHA"])
++
++
++def test_apply_coupons_checks_expiry_and_minimum_against_original_subtotal():
++    coupons = [
++        Coupon("TODAY", "fixed", 100, expires=date(2026, 1, 1), min_subtotal_cents=500),
++        Coupon("EXPIRED", "fixed", 500, expires=date(2025, 12, 31)),
++        Coupon("TOO-HIGH-MIN", "fixed", 500, min_subtotal_cents=501),
++    ]
++
++    assert apply_coupons(500, coupons, date(2026, 1, 1)) == (400, ["TODAY"])
++
++
++def test_apply_coupons_clamps_total_at_zero():
++    coupons = [Coupon("A", "fixed", 800), Coupon("B", "fixed", 700)]
++
++    assert apply_coupons(1000, coupons, date(2026, 1, 1)) == (0, ["A", "B"])
++
++
++def test_apply_coupons_rejects_negative_subtotal():
++    with pytest.raises(ShopError):
++        apply_coupons(-1, [], date(2026, 1, 1))

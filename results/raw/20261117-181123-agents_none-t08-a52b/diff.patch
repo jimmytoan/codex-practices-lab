@@ -1,0 +1,79 @@
+diff --git a/docs/cli.md b/docs/cli.md
+index 658cbf3..b2f0880 100644
+--- a/docs/cli.md
++++ b/docs/cli.md
+@@ -1,8 +1,10 @@
+ # Command line
+ 
+     python -m shoplib.cli report SALES_JSON
++    python -m shoplib.cli report SALES_JSON --format json
+ 
+ `SALES_JSON` is a file holding a list of sales, each
+ `{"sku": ..., "name": ..., "qty": ..., "unit_price_cents": ...}`.
+-The command prints the sales summary (one row per SKU) as CSV and exits 0.
+-Output formats follow docs/CONVENTIONS.md.
++The command prints the sales summary (one row per SKU) and exits 0. CSV is the
++default; pass `--format json` to print JSON. The `--format` option accepts
++`csv` or `json`. Output formats follow docs/CONVENTIONS.md.
+diff --git a/src/shoplib/cli.py b/src/shoplib/cli.py
+index bb9747c..78c59f2 100644
+--- a/src/shoplib/cli.py
++++ b/src/shoplib/cli.py
+@@ -12,6 +12,7 @@ def build_parser() -> argparse.ArgumentParser:
+     sub = parser.add_subparsers(dest="command", required=True)
+     report = sub.add_parser("report", help="print the sales summary")
+     report.add_argument("sales_json", help="file with a JSON list of sales")
++    report.add_argument("--format", choices=("csv", "json"), default="csv")
+     return parser
+ 
+ 
+@@ -20,7 +21,12 @@ def main(argv: list[str] | None = None) -> int:
+     if args.command == "report":
+         with open(args.sales_json) as fh:
+             sales = json.load(fh)
+-        sys.stdout.write(to_csv(sales_summary(sales)))
++        summary = sales_summary(sales)
++        if args.format == "json":
++            output = json.dumps(summary, indent=2, sort_keys=True) + "\n"
++        else:
++            output = to_csv(summary)
++        sys.stdout.write(output)
+     return 0
+ 
+ 
+diff --git a/tests/test_cli.py b/tests/test_cli.py
+index 29a7ce0..14b1a27 100644
+--- a/tests/test_cli.py
++++ b/tests/test_cli.py
+@@ -8,3 +8,31 @@ def test_report_csv(tmp_path, capsys):
+     path.write_text(json.dumps([{"sku": "A", "name": "Mug", "qty": 2, "unit_price_cents": 450}]))
+     assert main(["report", str(path)]) == 0
+     assert capsys.readouterr().out == "sku,name,units,revenue_cents\nA,Mug,2,900\n"
++
++
++def test_report_json(tmp_path, capsys):
++    path = tmp_path / "sales.json"
++    path.write_text(json.dumps([{"sku": "A", "name": "Mug", "qty": 2, "unit_price_cents": 450}]))
++    assert main(["report", str(path), "--format", "json"]) == 0
++    assert capsys.readouterr().out == (
++        '[\n'
++        '  {\n'
++        '    "name": "Mug",\n'
++        '    "revenue_cents": 900,\n'
++        '    "sku": "A",\n'
++        '    "units": 2\n'
++        '  }\n'
++        ']\n'
++    )
++
++
++def test_report_rejects_unknown_format(tmp_path, capsys):
++    path = tmp_path / "sales.json"
++    path.write_text("[]")
++    try:
++        main(["report", str(path), "--format", "xml"])
++    except SystemExit as exc:
++        assert exc.code == 2
++    else:
++        raise AssertionError("unknown format should be a usage error")
++    assert "invalid choice: 'xml'" in capsys.readouterr().err

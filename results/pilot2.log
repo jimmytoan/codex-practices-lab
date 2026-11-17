@@ -1,0 +1,78 @@
+7 runs to do for tag 'pilot'; spent so far $2.55 of $5.00
+=== 20261117-175524-prompt_oneline-t01-b33e | prompt_oneline | t01-shipping-boundary | gpt-6.1-terra/medium
+    ok passed=True rule=True oos=[] $0.052 20.1s in=81552 out=893
+=== 20261117-175546-prompt_oneline-t03-c6d1 | prompt_oneline | t03-inventory-release | gpt-6.1-terra/medium
+    ok passed=True rule=True oos=[] $0.056 26.1s in=83720 out=1205
+=== 20261117-175613-prompt_oneline-t04-c8d6 | prompt_oneline | t04-order-cancel | gpt-6.1-terra/medium
+    ok passed=True rule=True oos=[] $0.060 30.1s in=83382 out=1927
+=== 20261117-175644-prompt_oneline-t06-24db | prompt_oneline | t06-business-days | gpt-6.1-terra/medium
+    ok passed=True rule=None oos=[] $0.052 24.1s in=78519 out=1120
+=== 20261117-175709-prompt_oneline-t07-a449 | prompt_oneline | t07-coupon-stacking | gpt-6.1-terra/medium
+    ok passed=True rule=True oos=[] $0.062 30.1s in=103945 out=1579
+=== 20261117-175741-prompt_oneline-t09-6f54 | prompt_oneline | t09-slug-accents | gpt-6.1-terra/medium
+    ok passed=True rule=None oos=[] $0.051 28.1s in=78517 out=967
+=== 20261117-175810-prompt_oneline-t10-a80a | prompt_oneline | t10-split-parcels | gpt-6.1-terra/medium
+    ok passed=True rule=True oos=[] $0.059 34.1s in=83338 out=1969
+done in 201s; tag 'pilot' spend $2.94 of $5.00
+30 runs to do for tag 'pilot'; spent so far $2.94 of $5.00
+=== 20261117-175845-base-t01-12eb | base | t01-shipping-boundary | gpt-6-luna/medium
+    ok passed=True rule=True oos=[] $0.005 18.0s in=76360 out=1122
+=== 20261117-175904-base-t02-5e22 | base | t02-bulk-discount | gpt-6-luna/medium
+    ok passed=True rule=None oos=[] $0.006 22.0s in=94332 out=1715
+=== 20261117-175928-base-t03-fcac | base | t03-inventory-release | gpt-6-luna/medium
+    ok passed=True rule=True oos=[] $0.006 206.5s in=106627 out=1523
+=== 20261117-180256-base-t04-6891 | base | t04-order-cancel | gpt-6-luna/medium
+    ok passed=True rule=True oos=[] $0.009 103.9s in=164500 out=4364
+=== 20261117-180441-base-t05-ef68 | base | t05-csv-quoting | gpt-6-luna/medium
+    ok passed=True rule=None oos=[] $0.006 22.1s in=91700 out=1350
+=== 20261117-180504-base-t06-e2fb | base | t06-business-days | gpt-6-luna/medium
+    ok passed=True rule=None oos=[] $0.005 18.0s in=75954 out=1240
+=== 20261117-180523-base-t07-ffa0 | base | t07-coupon-stacking | gpt-6-luna/medium
+    ok passed=True rule=True oos=[] $0.007 36.2s in=97385 out=3044
+=== 20261117-180601-base-t08-1e2c | base | t08-cli-json | gpt-6-luna/medium
+    ok passed=True rule=None oos=[] $0.006 26.1s in=126364 out=1798
+=== 20261117-180628-base-t09-4c9f | base | t09-slug-accents | gpt-6-luna/medium
+    ok passed=True rule=None oos=[] $0.009 60.2s in=153613 out=4743
+=== 20261117-180729-base-t10-56cb | base | t10-split-parcels | gpt-6-luna/medium
+    ok passed=True rule=True oos=[] $0.010 62.2s in=181883 out=5473
+=== 20261117-180832-agents_none-t01-9c3f | agents_none | t01-shipping-boundary | gpt-6-luna/medium
+    ok passed=True rule=False oos=[] $0.005 16.1s in=88705 out=919
+=== 20261117-180850-agents_none-t02-c6cf | agents_none | t02-bulk-discount | gpt-6-luna/medium
+    ok passed=True rule=None oos=[] $0.006 24.1s in=108696 out=1141
+=== 20261117-180915-agents_none-t03-a3c0 | agents_none | t03-inventory-release | gpt-6-luna/medium
+    ok passed=True rule=False oos=[] $0.005 16.0s in=72194 out=679
+=== 20261117-180932-agents_none-t04-b47c | agents_none | t04-order-cancel | gpt-6-luna/medium
+    ok passed=True rule=False oos=[] $0.007 34.1s in=96324 out=2595
+=== 20261117-181008-agents_none-t05-7bd5 | agents_none | t05-csv-quoting | gpt-6-luna/medium
+    ok passed=True rule=None oos=[] $0.006 22.0s in=105139 out=1378
+=== 20261117-181031-agents_none-t06-52e4 | agents_none | t06-business-days | gpt-6-luna/medium
+    ok passed=True rule=None oos=[] $0.005 16.0s in=72511 out=1018
+=== 20261117-181048-agents_none-t07-bdee | agents_none | t07-coupon-stacking | gpt-6-luna/medium
+    ok passed=True rule=False oos=[] $0.007 34.1s in=126382 out=2674
+=== 20261117-181123-agents_none-t08-a52b | agents_none | t08-cli-json | gpt-6-luna/medium
+    ok passed=True rule=None oos=[] $0.006 22.0s in=91194 out=1667
+=== 20261117-181146-agents_none-t09-732f | agents_none | t09-slug-accents | gpt-6-luna/medium
+    ok passed=True rule=None oos=[] $0.007 48.2s in=96833 out=3934
+=== 20261117-181235-agents_none-t10-9f34 | agents_none | t10-split-parcels | gpt-6-luna/medium
+    ok passed=True rule=False oos=[] $0.011 76.3s in=190048 out=6754
+=== 20261117-181353-prompt_oneline-t01-2531 | prompt_oneline | t01-shipping-boundary | gpt-6-luna/medium
+    ok passed=True rule=True oos=[] $0.006 24.1s in=110712 out=1772
+=== 20261117-181418-prompt_oneline-t02-3156 | prompt_oneline | t02-bulk-discount | gpt-6-luna/medium
+    ok passed=True rule=None oos=[] $0.007 26.1s in=162738 out=1483
+=== 20261117-181445-prompt_oneline-t03-66fd | prompt_oneline | t03-inventory-release | gpt-6-luna/medium
+    ok passed=True rule=True oos=[] $0.006 22.1s in=110806 out=1907
+=== 20261117-181508-prompt_oneline-t04-577d | prompt_oneline | t04-order-cancel | gpt-6-luna/medium
+    ok passed=True rule=True oos=[] $0.008 42.2s in=149953 out=3236
+=== 20261117-181552-prompt_oneline-t05-cbdd | prompt_oneline | t05-csv-quoting | gpt-6-luna/medium
+    ok passed=True rule=None oos=[] $0.005 16.0s in=75392 out=1060
+=== 20261117-181609-prompt_oneline-t06-f95e | prompt_oneline | t06-business-days | gpt-6-luna/medium
+    ok passed=True rule=None oos=[] $0.006 24.1s in=108349 out=1751
+=== 20261117-181634-prompt_oneline-t07-3eda | prompt_oneline | t07-coupon-stacking | gpt-6-luna/medium
+    ok passed=True rule=True oos=[] $0.007 38.2s in=130918 out=2836
+=== 20261117-181713-prompt_oneline-t08-dbf8 | prompt_oneline | t08-cli-json | gpt-6-luna/medium
+    ok passed=True rule=None oos=['src/shoplib/reports.py'] $0.007 26.1s in=98311 out=2360
+=== 20261117-181740-prompt_oneline-t09-d06f | prompt_oneline | t09-slug-accents | gpt-6-luna/medium
+    ok passed=True rule=None oos=[] $0.005 20.0s in=90768 out=1315
+=== 20261117-181802-prompt_oneline-t10-b590 | prompt_oneline | t10-split-parcels | gpt-6-luna/medium
+    ok passed=True rule=True oos=[] $0.010 54.2s in=243742 out=5029
+done in 1212s; tag 'pilot' spend $3.15 of $5.00

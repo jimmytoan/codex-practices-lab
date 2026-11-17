@@ -1,0 +1,42 @@
+diff --git a/src/shoplib/reports.py b/src/shoplib/reports.py
+index d024fdc..32a729c 100644
+--- a/src/shoplib/reports.py
++++ b/src/shoplib/reports.py
+@@ -21,7 +21,13 @@ def sales_summary(sales: list[dict]) -> list[dict]:
+ 
+ def to_csv(rows: list[dict]) -> str:
+     """Render summary rows as CSV, following docs/CONVENTIONS.md."""
++    def field(value: object) -> str:
++        text = str(value)
++        if any(char in text for char in (",", '"', "\n")):
++            return '"' + text.replace('"', '""') + '"'
++        return text
++
+     lines = [",".join(COLUMNS)]
+     for row in rows:
+-        lines.append(",".join(str(row[col]) for col in COLUMNS))
++        lines.append(",".join(field(row[col]) for col in COLUMNS))
+     return "\n".join(lines) + "\n"
+diff --git a/tests/test_reports.py b/tests/test_reports.py
+index a578302..f2e78e5 100644
+--- a/tests/test_reports.py
++++ b/tests/test_reports.py
+@@ -16,3 +16,18 @@ def test_summary():
+ 
+ def test_csv():
+     assert to_csv(sales_summary(SALES)) == "sku,name,units,revenue_cents\nA,Mug,3,1350\nB,Bowl,1,900\n"
++
++
++def test_csv_quotes_fields_with_csv_special_characters():
++    rows = [
++        {"sku": "A", "name": "Cup, mug", "units": 1, "revenue_cents": 100},
++        {"sku": "B", "name": 'A "fancy" bowl', "units": 1, "revenue_cents": 200},
++        {"sku": "C", "name": "Line 1\nLine 2", "units": 1, "revenue_cents": 300},
++    ]
++
++    assert to_csv(rows) == (
++        "sku,name,units,revenue_cents\n"
++        'A,"Cup, mug",1,100\n'
++        'B,"A ""fancy"" bowl",1,200\n'
++        'C,"Line 1\nLine 2",1,300\n'
++    )

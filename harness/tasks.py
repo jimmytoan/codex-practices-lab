@@ -350,5 +350,7 @@ add(Task(
     },
 ))
 
+from . import tasks_hard  # noqa: E402,F401  (registers t11-t14)
+
 RULE_TASKS = [t for t, task in TASKS.items() if task.has_rule]
 SEEDED_TASKS = [t for t, task in TASKS.items() if task.bugs]
