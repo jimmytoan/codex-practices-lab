@@ -1,0 +1,140 @@
+diff --git a/src/shoplib/inventory.py b/src/shoplib/inventory.py
+index 69cd1dc..dbc786c 100644
+--- a/src/shoplib/inventory.py
++++ b/src/shoplib/inventory.py
+@@ -35,7 +35,11 @@ class Inventory:
+         the SKU (including a SKU with nothing reserved) raises ValueError and
+         changes nothing.
+         """
+-        raise NotImplementedError
++        if qty <= 0:
++            raise ValueError("qty must be positive")
++        if qty > self.reserved(sku):
++            raise ValueError(f"only {self.reserved(sku)} of {sku} reserved")
++        self._reserved[sku] -= qty
+ 
+     def ship(self, sku: str, qty: int) -> None:
+         """Ship `qty` reserved units: they leave both reserved and on hand."""
+diff --git a/src/shoplib/orders.py b/src/shoplib/orders.py
+index 8edb164..fedd224 100644
+--- a/src/shoplib/orders.py
++++ b/src/shoplib/orders.py
+@@ -26,7 +26,7 @@ class Order:
+                 reserved.append((sku, qty))
+         except ValueError:
+             for sku, qty in reserved:
+-                inventory._reserved[sku] -= qty
++                inventory.release(sku, qty)
+             raise
+ 
+     def _transition(self, allowed_from: tuple[str, ...], to: str) -> None:
+@@ -37,6 +37,16 @@ class Order:
+     def pay(self) -> None:
+         self._transition((NEW,), PAID)
+ 
++    def cancel(self) -> None:
++        if self.state == CANCELLED:
++            return
++        if self.state not in (NEW, PAID):
++            raise ValueError(f"cannot go from {self.state} to {CANCELLED}")
++        for sku, qty in self.lines.items():
++            self.inventory.release(sku, qty)
++        self.refund_due = self.state == PAID
++        self.state = CANCELLED
++
+     def ship(self) -> None:
+         if self.state != PAID:
+             raise ValueError(f"cannot go from {self.state} to {SHIPPED}")
+diff --git a/tests/test_inventory.py b/tests/test_inventory.py
+index 37436c0..a04b037 100644
+--- a/tests/test_inventory.py
++++ b/tests/test_inventory.py
+@@ -18,3 +18,22 @@ def test_cannot_reserve_more_than_available():
+     inv.receive("A", 2)
+     with pytest.raises(ValueError):
+         inv.reserve("A", 3)
++
++
++def test_release_returns_reserved_stock_to_available():
++    inv = Inventory()
++    inv.receive("A", 10)
++    inv.reserve("A", 4)
++    inv.release("A", 3)
++    assert (inv.on_hand("A"), inv.reserved("A"), inv.available("A")) == (10, 1, 9)
++
++
++@pytest.mark.parametrize("sku, qty", [("A", 0), ("A", -1), ("A", 5), ("B", 1)])
++def test_invalid_release_changes_nothing(sku, qty):
++    inv = Inventory()
++    inv.receive("A", 10)
++    inv.reserve("A", 4)
++    with pytest.raises(ValueError):
++        inv.release(sku, qty)
++    assert (inv.on_hand("A"), inv.reserved("A"), inv.available("A")) == (10, 4, 6)
++    assert (inv.on_hand("B"), inv.reserved("B"), inv.available("B")) == (0, 0, 0)
+diff --git a/tests/test_orders.py b/tests/test_orders.py
+index d3835d1..a3be04c 100644
+--- a/tests/test_orders.py
++++ b/tests/test_orders.py
+@@ -1,7 +1,7 @@
+ import pytest
+ 
+ from shoplib.inventory import Inventory
+-from shoplib.orders import DELIVERED, NEW, Order
++from shoplib.orders import CANCELLED, DELIVERED, NEW, Order
+ 
+ 
+ def make():
+@@ -25,3 +25,52 @@ def test_cannot_ship_unpaid():
+     _, order = make()
+     with pytest.raises(ValueError):
+         order.ship()
++
++
++@pytest.mark.parametrize("paid", [False, True])
++def test_cancel_releases_only_order_stock_and_is_idempotent(paid):
++    inv = Inventory()
++    inv.receive("A", 10)
++    inv.receive("B", 5)
++    order = Order("o1", {"A": 2, "B": 3}, inv)
++    Order("o2", {"A": 4}, inv)
++    if paid:
++        order.pay()
++
++    order.cancel()
++    assert order.state == CANCELLED
++    assert order.refund_due is paid
++    assert (inv.on_hand("A"), inv.reserved("A"), inv.available("A")) == (10, 4, 6)
++    assert (inv.on_hand("B"), inv.reserved("B"), inv.available("B")) == (5, 0, 5)
++
++    order.cancel()
++    assert order.state == CANCELLED
++    assert order.refund_due is paid
++    assert inv.reserved("A") == 4
++    assert inv.reserved("B") == 0
++
++
++@pytest.mark.parametrize("delivered", [False, True])
++def test_cannot_cancel_shipped_or_delivered_order(delivered):
++    inv, order = make()
++    order.pay()
++    order.ship()
++    if delivered:
++        order.deliver()
++    before = (order.state, order.refund_due, inv.on_hand("A"),
++              inv.reserved("A"), inv.available("A"))
++
++    with pytest.raises(ValueError):
++        order.cancel()
++
++    assert (order.state, order.refund_due, inv.on_hand("A"),
++            inv.reserved("A"), inv.available("A")) == before
++
++
++def test_failed_order_creation_releases_previous_reservations():
++    inv = Inventory()
++    inv.receive("A", 5)
++    with pytest.raises(ValueError):
++        Order("o1", {"A": 2, "B": 1}, inv)
++    assert inv.reserved("A") == 0
++    assert inv.available("A") == 5

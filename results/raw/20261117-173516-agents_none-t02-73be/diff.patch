@@ -1,0 +1,59 @@
+diff --git a/src/shoplib/cart.py b/src/shoplib/cart.py
+index 9150045..7e24b23 100644
+--- a/src/shoplib/cart.py
++++ b/src/shoplib/cart.py
+@@ -2,6 +2,8 @@
+ 
+ from dataclasses import dataclass
+ 
++from shoplib.money import percent_of
++
+ 
+ @dataclass
+ class Line:
+@@ -38,7 +40,10 @@ class Cart:
+         if sku not in self._lines:
+             raise ValueError(f"{sku} is not in the cart")
+         line = self._lines[sku]
+-        return line.unit_price_cents * line.qty
++        total = line.unit_price_cents * line.qty
++        if line.qty >= 10:
++            total -= percent_of(total, 5)
++        return total
+ 
+     def subtotal(self) -> int:
+         """Sum of all line totals in cents."""
+diff --git a/tests/test_cart.py b/tests/test_cart.py
+index 1a3d0e7..9b0676b 100644
+--- a/tests/test_cart.py
++++ b/tests/test_cart.py
+@@ -21,3 +21,29 @@ def test_add_same_sku_merges():
+ def test_bad_qty():
+     with pytest.raises(ValueError):
+         Cart().add("A", 250, 0)
++
++
++def test_bulk_discount_threshold_and_merged_quantities():
++    cart = Cart()
++    cart.add("A", 101, 9)
++    assert cart.line_total("A") == 909
++    assert cart.subtotal() == 909
++
++    cart.add("A", 101)
++    assert cart.line_total("A") == 959  # 50.5 cents discount rounds up.
++
++    cart.add("A", 101)
++    assert cart.line_total("A") == 1055
++    assert cart.subtotal() == 1055
++
++
++def test_subtotal_sums_discounts_per_line():
++    cart = Cart()
++    cart.add("A", 1, 10)
++    cart.add("B", 1, 10)
++    cart.add("C", 1, 9)
++
++    assert cart.line_total("A") == 9
++    assert cart.line_total("B") == 9
++    assert cart.line_total("C") == 9
++    assert cart.subtotal() == 27

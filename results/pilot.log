@@ -1,0 +1,62 @@
+30 runs to do for tag 'pilot'; spent so far $0.05 of $5.00
+=== 20261117-172949-base-t02-eb5b | base | t02-bulk-discount | gpt-6.1-terra/medium
+    ok passed=True rule=None oos=[] $0.054 28.1s in=81282 out=1248
+=== 20261117-173018-base-t04-f31e | base | t04-order-cancel | gpt-6.1-terra/medium
+    ok passed=True rule=True oos=[] $0.061 38.1s in=85294 out=1991
+=== 20261117-173057-base-t07-e71e | base | t07-coupon-stacking | gpt-6.1-terra/medium
+    ok passed=True rule=True oos=[] $0.059 36.1s in=83889 out=1844
+=== 20261117-173135-base-t10-6e7e | base | t10-split-parcels | gpt-6.1-terra/medium
+    ok passed=True rule=True oos=[] $0.087 94.3s in=133778 out=4723
+=== 20261117-173310-rule_early-t01-d163 | rule_early | t01-shipping-boundary | gpt-6.1-terra/medium
+    ok passed=True rule=True oos=[] $0.070 24.1s in=116574 out=847
+=== 20261117-173336-rule_late-t01-64bb | rule_late | t01-shipping-boundary | gpt-6.1-terra/medium
+    ok passed=True rule=False oos=[] $0.067 18.1s in=92549 out=638
+=== 20261117-173355-rule_early-t07-f4a0 | rule_early | t07-coupon-stacking | gpt-6.1-terra/medium
+    ok passed=True rule=True oos=[] $0.084 46.1s in=146770 out=2233
+=== 20261117-173443-rule_late-t07-c52c | rule_late | t07-coupon-stacking | gpt-6.1-terra/medium
+    ok passed=True rule=False oos=[] $0.077 32.1s in=95854 out=1751
+=== 20261117-173516-agents_none-t02-73be | agents_none | t02-bulk-discount | gpt-6.1-terra/medium
+    ok passed=True rule=None oos=[] $0.052 26.1s in=79127 out=1081
+=== 20261117-173543-agents_none-t04-9cf0 | agents_none | t04-order-cancel | gpt-6.1-terra/medium
+    ok passed=True rule=False oos=[] $0.057 36.1s in=81803 out=1818
+=== 20261117-173620-agents_none-t07-caa9 | agents_none | t07-coupon-stacking | gpt-6.1-terra/medium
+    ok passed=True rule=False oos=[] $0.067 46.2s in=136885 out=2384
+=== 20261117-173708-agents_bloated-t02-0a8a | agents_bloated | t02-bulk-discount | gpt-6.1-terra/medium
+    ok passed=True rule=None oos=[] $0.071 28.1s in=112972 out=1183
+=== 20261117-173737-agents_bloated-t04-9438 | agents_bloated | t04-order-cancel | gpt-6.1-terra/medium
+    ok passed=True rule=True oos=[] $0.085 50.2s in=142348 out=2801
+=== 20261117-173829-agents_bloated-t07-3ac4 | agents_bloated | t07-coupon-stacking | gpt-6.1-terra/medium
+    ok passed=True rule=True oos=[] $0.073 30.1s in=90092 out=1696
+=== 20261117-173900-prompt_oneline-t02-2bbf | prompt_oneline | t02-bulk-discount | gpt-6.1-terra/medium
+    ok passed=True rule=None oos=[] $0.059 30.1s in=85202 out=1280
+=== 20261117-173931-prompt_oneline-t05-12b0 | prompt_oneline | t05-csv-quoting | gpt-6.1-terra/medium
+    ok passed=True rule=None oos=[] $0.052 26.1s in=80308 out=1092
+=== 20261117-173958-prompt_oneline-t08-9b20 | prompt_oneline | t08-cli-json | gpt-6.1-terra/medium
+    ok passed=True rule=None oos=[] $0.054 26.1s in=81185 out=1352
+=== 20261117-174025-plan-t04-b65f | plan | t04-order-cancel | gpt-6.1-terra/medium
+    ok passed=True rule=True oos=[] $0.112 44.1s in=186763 out=2681
+=== 20261117-174111-plan-t07-7f4d | plan | t07-coupon-stacking | gpt-6.1-terra/medium
+    ok passed=True rule=True oos=[] $0.109 40.1s in=134481 out=2439
+=== 20261117-174152-plan-t10-a81a | plan | t10-split-parcels | gpt-6.1-terra/medium
+    ok passed=True rule=True oos=[] $0.127 82.2s in=157362 out=5267
+=== 20261117-174316-effort_low-t07-2714 | effort_low | t07-coupon-stacking | gpt-6.1-terra/low
+    ok passed=True rule=True oos=[] $0.054 26.1s in=96469 out=1359
+=== 20261117-174343-effort_low-t10-3f39 | effort_low | t10-split-parcels | gpt-6.1-terra/low
+    ok passed=True rule=True oos=[] $0.067 62.2s in=102684 out=3091
+=== 20261117-174447-effort_high-t07-887e | effort_high | t07-coupon-stacking | gpt-6.1-terra/high
+    ok passed=True rule=True oos=[] $0.067 44.1s in=87577 out=2490
+=== 20261117-174532-effort_high-t10-547c | effort_high | t10-split-parcels | gpt-6.1-terra/high
+    ok passed=True rule=True oos=[] $0.138 190.6s in=309893 out=10369
+=== 20261117-174844-review_same_buggy-t06-2d4c | review_same_buggy | t06-business-days | gpt-6.1-terra/medium
+    ok passed=True rule=None oos=[] $0.148 50.2s in=211175 out=2643 caught=['backward-ignores-holidays', 'zero-does-not-move'] regress=[] findings=2
+=== 20261117-174937-review_same_buggy-t10-9789 | review_same_buggy | t10-split-parcels | gpt-6.1-terra/medium
+    ok passed=True rule=True oos=[] $0.184 76.3s in=250307 out=5409 caught=['accepts-zero-qty', 'exact-fit-rejected'] regress=[] findings=2
+=== 20261117-175056-review_fresh_buggy-t06-1c66 | review_fresh_buggy | t06-business-days | gpt-6.1-terra/medium
+    ok passed=True rule=None oos=[] $0.051 26.1s in=63433 out=1140 caught=['backward-ignores-holidays', 'zero-does-not-move'] regress=[] findings=2
+=== 20261117-175124-review_fresh_buggy-t10-9bd4 | review_fresh_buggy | t10-split-parcels | gpt-6.1-terra/medium
+    ok passed=True rule=True oos=[] $0.074 66.2s in=129445 out=3131 caught=['accepts-zero-qty', 'exact-fit-rejected'] regress=[] findings=3
+=== 20261117-175232-review_same_clean-t07-f61e | review_same_clean | t07-coupon-stacking | gpt-6.1-terra/medium
+    ok passed=True rule=True oos=[] $0.183 68.2s in=309124 out=4510 caught=['expiry-day-excluded', 'tie-not-by-code'] regress=[] findings=1
+=== 20261117-175343-review_fresh_clean-t07-187a | review_fresh_clean | t07-coupon-stacking | gpt-6.1-terra/medium
+    ok passed=True rule=True oos=[] $0.060 30.1s in=86527 out=1479 caught=['expiry-day-excluded', 'tie-not-by-code'] regress=[] findings=1
+done in 1466s; tag 'pilot' spend $2.55 of $5.00
