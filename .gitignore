@@ -1,0 +1,8 @@
+.env
+.codex-home/
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+work/
+.pytest_cache/
