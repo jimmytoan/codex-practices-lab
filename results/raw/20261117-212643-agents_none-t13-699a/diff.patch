@@ -1,0 +1,188 @@
+diff --git a/src/shoplib/costing.py b/src/shoplib/costing.py
+index 5e8c27e..a917b15 100644
+--- a/src/shoplib/costing.py
++++ b/src/shoplib/costing.py
+@@ -1,6 +1,77 @@
+ """Cost of goods sold with FIFO lots. See docs/costing.md."""
+ 
++from collections import deque
++from decimal import Decimal, localcontext
++
++from shoplib.money import round_cents
++
+ 
+ def fifo_costing(events: list[dict]) -> dict:
+     """Process stock events and report cost per SKU. See docs/costing.md."""
+-    raise NotImplementedError
++    stock = {}
++    for event in events:
++        event_type = event["type"]
++        if event_type not in ("receive", "sell", "return"):
++            raise ValueError("unknown event type")
++
++        qty = event["qty"]
++        if qty < 1:
++            raise ValueError("quantity must be positive")
++
++        sku = event["sku"]
++        if sku not in stock:
++            stock[sku] = {
++                "lots": deque(),
++                "on_hand": 0,
++                "cogs_cents": 0,
++                "last_sale": None,
++            }
++        state = stock[sku]
++
++        if event_type == "receive":
++            unit_cost = event["unit_cost_cents"]
++            if unit_cost < 0:
++                raise ValueError("unit cost must be nonnegative")
++            state["lots"].append((qty, unit_cost))
++            state["on_hand"] += qty
++        elif event_type == "sell":
++            if qty > state["on_hand"]:
++                raise ValueError("not enough stock")
++
++            remaining = qty
++            sale_cost = 0
++            while remaining:
++                lot_qty, unit_cost = state["lots"].popleft()
++                taken = min(remaining, lot_qty)
++                sale_cost += taken * unit_cost
++                remaining -= taken
++                if taken < lot_qty:
++                    state["lots"].appendleft((lot_qty - taken, unit_cost))
++
++            state["on_hand"] -= qty
++            state["cogs_cents"] += sale_cost
++            # Extra precision preserves which side of a half cent the exact
++            # average lies on, even for large quantities and costs.
++            with localcontext() as context:
++                context.prec = len(str(sale_cost)) + len(str(qty)) + 2
++                average_cost = round_cents(Decimal(sale_cost) / Decimal(qty))
++            state["last_sale"] = (qty, average_cost)
++        else:
++            last_sale = state["last_sale"]
++            if last_sale is None or qty > last_sale[0]:
++                raise ValueError("not enough units returnable from the last sale")
++
++            returnable, unit_cost = last_sale
++            state["last_sale"] = (returnable - qty, unit_cost)
++            state["lots"].append((qty, unit_cost))
++            state["on_hand"] += qty
++            state["cogs_cents"] -= qty * unit_cost
++
++    return {
++        sku: {
++            "cogs_cents": state["cogs_cents"],
++            "on_hand": state["on_hand"],
++            "value_cents": sum(qty * cost for qty, cost in state["lots"]),
++        }
++        for sku, state in stock.items()
++    }
+diff --git a/tests/test_costing.py b/tests/test_costing.py
+new file mode 100644
+index 0000000..9ea4c8a
+--- /dev/null
++++ b/tests/test_costing.py
+@@ -0,0 +1,99 @@
++from copy import deepcopy
++
++import pytest
++
++from shoplib.costing import fifo_costing
++
++
++def receive(sku, qty, cost):
++    return {"type": "receive", "sku": sku, "qty": qty, "unit_cost_cents": cost}
++
++
++def sell(sku, qty):
++    return {"type": "sell", "sku": sku, "qty": qty}
++
++
++def returned(sku, qty):
++    return {"type": "return", "sku": sku, "qty": qty}
++
++
++def test_fifo_lots_and_skus_are_independent():
++    events = [
++        receive("A", 2, 100), receive("B", 3, 0), receive("A", 3, 250),
++        sell("A", 3), sell("B", 1),
++    ]
++    original = deepcopy(events)
++    assert fifo_costing(events) == {
++        "A": {"cogs_cents": 450, "on_hand": 2, "value_cents": 500},
++        "B": {"cogs_cents": 0, "on_hand": 2, "value_cents": 0},
++    }
++    assert events == original
++    assert fifo_costing([]) == {}
++
++
++def test_returns_use_rounded_sale_average_and_join_back_of_queue():
++    events = [
++        receive("A", 1, 100), receive("A", 2, 101), sell("A", 2),
++        returned("A", 1), receive("A", 1, 200), returned("A", 1),
++    ]
++    assert fifo_costing(events) == {
++        "A": {"cogs_cents": -1, "on_hand": 4, "value_cents": 503}
++    }
++    # Existing stock precedes the return; a later receipt follows it.
++    assert fifo_costing(events + [sell("A", 2)]) == {
++        "A": {"cogs_cents": 201, "on_hand": 2, "value_cents": 301}
++    }
++
++
++def test_new_sale_replaces_returnable_sale_even_after_other_sku_events():
++    events = [
++        receive("A", 5, 10), sell("A", 3), receive("B", 1, 30),
++        sell("B", 1), returned("A", 2), sell("A", 1), returned("A", 1),
++    ]
++    assert fifo_costing(events) == {
++        "A": {"cogs_cents": 10, "on_hand": 4, "value_cents": 40},
++        "B": {"cogs_cents": 30, "on_hand": 0, "value_cents": 0},
++    }
++    with pytest.raises(ValueError):
++        fifo_costing(events + [returned("A", 1)])
++
++
++def test_average_rounding_is_exact_for_large_integers():
++    qty = 10**30 + 1
++    # The average is just below 0.5 cents, despite default Decimal precision.
++    events = [receive("A", qty // 2, 1), receive("A", qty - qty // 2, 0),
++              sell("A", qty), returned("A", 1)]
++    assert fifo_costing(events)["A"] == {
++        "cogs_cents": qty // 2, "on_hand": 1, "value_cents": 0,
++    }
++    large_cost = 10**40 + 1
++    assert fifo_costing([receive("A", 1, large_cost), sell("A", 1),
++                         returned("A", 1)])["A"] == {
++        "cogs_cents": 0, "on_hand": 1, "value_cents": large_cost,
++    }
++
++
++@pytest.mark.parametrize("event_type", ["receive", "sell", "return"])
++@pytest.mark.parametrize("qty", [0, -1])
++def test_rejects_nonpositive_quantities(event_type, qty):
++    event = {"type": event_type, "sku": "A", "qty": qty, "unit_cost_cents": 1}
++    with pytest.raises(ValueError):
++        fifo_costing([event])
++
++
++@pytest.mark.parametrize("events", [
++    [receive("A", 1, -1)],
++    [sell("A", 1)],
++    [receive("A", 1, 10), sell("A", 2)],
++    [returned("A", 1)],
++    [receive("A", 2, 10), sell("A", 2), returned("A", 3)],
++    [receive("A", 2, 10), sell("A", 2), returned("A", 1), returned("A", 2)],
++    [receive("A", 2, 10), sell("A", 2), sell("A", 1)],
++    [receive("A", 2, 10), sell("A", 1), returned("B", 1)],
++    [{"type": "unknown"}],
++])
++def test_rejects_invalid_events_without_modifying_input(events):
++    original = deepcopy(events)
++    with pytest.raises(ValueError):
++        fifo_costing(events)
++    assert events == original

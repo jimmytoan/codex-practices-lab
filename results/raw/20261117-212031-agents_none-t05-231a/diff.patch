@@ -1,0 +1,56 @@
+diff --git a/src/shoplib/reports.py b/src/shoplib/reports.py
+index d024fdc..5bc3d69 100644
+--- a/src/shoplib/reports.py
++++ b/src/shoplib/reports.py
+@@ -21,7 +21,13 @@ def sales_summary(sales: list[dict]) -> list[dict]:
+ 
+ def to_csv(rows: list[dict]) -> str:
+     """Render summary rows as CSV, following docs/CONVENTIONS.md."""
++    def field(value: object) -> str:
++        text = str(value)
++        if any(char in text for char in ',"\r\n'):
++            return '"' + text.replace('"', '""') + '"'
++        return text
++
+     lines = [",".join(COLUMNS)]
+     for row in rows:
+-        lines.append(",".join(str(row[col]) for col in COLUMNS))
++        lines.append(",".join(field(row[col]) for col in COLUMNS))
+     return "\n".join(lines) + "\n"
+diff --git a/tests/test_reports.py b/tests/test_reports.py
+index a578302..88877bb 100644
+--- a/tests/test_reports.py
++++ b/tests/test_reports.py
+@@ -1,3 +1,6 @@
++import csv
++import io
++
+ from shoplib.reports import sales_summary, to_csv
+ 
+ SALES = [
+@@ -16,3 +19,25 @@ def test_summary():
+ 
+ def test_csv():
+     assert to_csv(sales_summary(SALES)) == "sku,name,units,revenue_cents\nA,Mug,3,1350\nB,Bowl,1,900\n"
++
++
++def test_csv_quotes_special_fields_and_round_trips():
++    rows = [
++        {"sku": "A,1", "name": 'A "quoted"\nname', "units": 3, "revenue_cents": 1350},
++        {"sku": "B\r2", "name": "first\r\nsecond", "units": "", "revenue_cents": None},
++    ]
++    result = to_csv(rows)
++    assert result == (
++        'sku,name,units,revenue_cents\n'
++        '"A,1","A ""quoted""\nname",3,1350\n'
++        '"B\r2","first\r\nsecond",,None\n'
++    )
++    assert list(csv.reader(io.StringIO(result, newline=""))) == [
++        ["sku", "name", "units", "revenue_cents"],
++        ["A,1", 'A "quoted"\nname', "3", "1350"],
++        ["B\r2", "first\r\nsecond", "", "None"],
++    ]
++
++
++def test_csv_empty_rows_has_header():
++    assert to_csv([]) == "sku,name,units,revenue_cents\n"

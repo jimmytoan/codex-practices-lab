@@ -1,0 +1,133 @@
+{
+  "run_id": "20261118-025522-review_fresh_buggy-t14-db23",
+  "ts": "2026-11-17T18:56:15+00:00",
+  "tag": "full-terra",
+  "condition": "review_fresh_buggy",
+  "task": "t14-store-days",
+  "model": "gpt-6.1-terra",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "review_fresh",
+  "variant": "buggy",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 52.3,
+      "usage": {
+        "input_tokens": 146592,
+        "cached_input_tokens": 125840,
+        "cache_write_input_tokens": 20728,
+        "output_tokens": 3148,
+        "reasoning_output_tokens": 602
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 146592,
+    "cached_input_tokens": 125840,
+    "cache_write_input_tokens": 20728,
+    "output_tokens": 3148,
+    "reasoning_output_tokens": 602
+  },
+  "cost_usd": 0.07388,
+  "cost_usd_low": 0.04797,
+  "wall_s": 52.3,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_early_morning_belongs_to_previous_day",
+      "test_empty",
+      "test_exactly_at_start_hour_is_new_day",
+      "test_gaps_filled_with_zero_and_sorted",
+      "test_naive_timestamp_is_an_error",
+      "test_offsets_in_timestamps",
+      "test_other_offset_and_start",
+      "test_totals_and_refunds",
+      "test_year_boundary"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "32 passed in 0.02s"
+    ]
+  },
+  "rule_followed": null,
+  "changed_files": [
+    "src/shoplib/storedays.py",
+    "tests/test_storedays.py"
+  ],
+  "out_of_scope": [],
+  "commands": 12,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6.1-terra",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "applied_exactly": true,
+  "before_review": {
+    "passed": [
+      "test_early_morning_belongs_to_previous_day",
+      "test_empty",
+      "test_naive_timestamp_is_an_error",
+      "test_offsets_in_timestamps",
+      "test_other_offset_and_start",
+      "test_totals_and_refunds",
+      "test_year_boundary"
+    ],
+    "failed": [
+      "test_exactly_at_start_hour_is_new_day",
+      "test_gaps_filled_with_zero_and_sorted"
+    ],
+    "error": null,
+    "ok": false
+  },
+  "findings": [
+    {
+      "file": "src/shoplib/storedays.py",
+      "description": "Fixed opening-hour sales assigned to the previous day."
+    },
+    {
+      "file": "src/shoplib/storedays.py",
+      "description": "Fixed missing zero-revenue days in the output."
+    },
+    {
+      "file": "src/shoplib/storedays.py",
+      "description": "Fixed invalid inputs raising errors other than ShopError."
+    },
+    {
+      "file": "src/shoplib/storedays.py",
+      "description": "Fixed overflow when the last store day is 9999-12-31. All 32 tests pass."
+    }
+  ],
+  "bug_signatures": {
+    "start-hour-goes-to-previous-day": [
+      "test_exactly_at_start_hour_is_new_day"
+    ],
+    "no-gap-days": [
+      "test_gaps_filled_with_zero_and_sorted"
+    ]
+  },
+  "bugs_caught": [
+    "no-gap-days",
+    "start-hour-goes-to-previous-day"
+  ],
+  "regressions": []
+}

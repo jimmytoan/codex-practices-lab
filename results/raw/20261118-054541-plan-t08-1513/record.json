@@ -1,0 +1,103 @@
+{
+  "run_id": "20261118-054541-plan-t08-1513",
+  "ts": "2026-11-17T21:46:07+00:00",
+  "tag": "full-luna",
+  "condition": "plan",
+  "task": "t08-cli-json",
+  "model": "gpt-6-luna",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "plan",
+  "variant": "",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 10.0,
+      "usage": {
+        "input_tokens": 44008,
+        "cached_input_tokens": 28431,
+        "cache_write_input_tokens": 15568,
+        "output_tokens": 507,
+        "reasoning_output_tokens": 114
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    },
+    {
+      "status": "ok",
+      "wall_s": 16.0,
+      "usage": {
+        "input_tokens": 96287,
+        "cached_input_tokens": 77597,
+        "cache_write_input_tokens": 18672,
+        "output_tokens": 2015,
+        "reasoning_output_tokens": 496
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 140295,
+    "cached_input_tokens": 106028,
+    "cache_write_input_tokens": 34240,
+    "output_tokens": 2522,
+    "reasoning_output_tokens": 610
+  },
+  "cost_usd": 0.01088,
+  "cost_usd_low": 0.0066,
+  "wall_s": 26.0,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_default_is_still_csv",
+      "test_empty_sales_json",
+      "test_explicit_csv",
+      "test_flag_before_file",
+      "test_json_content",
+      "test_json_layout_follows_conventions",
+      "test_unknown_format_is_a_usage_error"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "23 passed in 0.01s"
+    ]
+  },
+  "rule_followed": null,
+  "changed_files": [
+    "docs/cli.md",
+    "src/shoplib/cli.py",
+    "tests/test_cli.py"
+  ],
+  "out_of_scope": [],
+  "commands": 8,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "read-only"
+      },
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "plan_text": "1. Add `--format` with `csv` and `json` choices, defaulting to `csv` so existing output stays unchanged.\n2. Render JSON using the documented `json.dumps(..., indent=2, sort_keys=True)` format and append one newline.\n3. Update `docs/cli.md` and add CLI tests for JSON output and an unknown format\u2019s usage error, while retaining the CSV regression test.",
+  "edits_during_plan": []
+}

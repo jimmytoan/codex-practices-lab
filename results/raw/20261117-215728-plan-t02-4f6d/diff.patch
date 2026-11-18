@@ -1,0 +1,72 @@
+diff --git a/src/shoplib/cart.py b/src/shoplib/cart.py
+index 9150045..42e5bce 100644
+--- a/src/shoplib/cart.py
++++ b/src/shoplib/cart.py
+@@ -2,6 +2,9 @@
+ 
+ from dataclasses import dataclass
+ 
++from shoplib.errors import ShopError
++from shoplib.money import percent_of
++
+ 
+ @dataclass
+ class Line:
+@@ -36,9 +39,12 @@ class Cart:
+     def line_total(self, sku: str) -> int:
+         """Total for one line in cents."""
+         if sku not in self._lines:
+-            raise ValueError(f"{sku} is not in the cart")
++            raise ShopError(f"{sku} is not in the cart")
+         line = self._lines[sku]
+-        return line.unit_price_cents * line.qty
++        total = line.unit_price_cents * line.qty
++        if line.qty >= 10:
++            total -= percent_of(total, 5)
++        return total
+ 
+     def subtotal(self) -> int:
+         """Sum of all line totals in cents."""
+diff --git a/tests/test_cart.py b/tests/test_cart.py
+index 1a3d0e7..e2cf95d 100644
+--- a/tests/test_cart.py
++++ b/tests/test_cart.py
+@@ -1,6 +1,7 @@
+ import pytest
+ 
+ from shoplib.cart import Cart
++from shoplib.errors import ShopError
+ 
+ 
+ def test_add_and_subtotal():
+@@ -21,3 +22,30 @@ def test_add_same_sku_merges():
+ def test_bad_qty():
+     with pytest.raises(ValueError):
+         Cart().add("A", 250, 0)
++
++
++def test_quantity_discount_threshold_and_rounding():
++    cart = Cart()
++    cart.add("under", 10, 9)
++    cart.add("threshold", 11, 10)
++    cart.add("above", 10, 11)
++
++    assert cart.line_total("under") == 90
++    assert cart.line_total("threshold") == 104
++    assert cart.line_total("above") == 104
++    assert cart.subtotal() == 298
++
++
++def test_quantity_discount_applies_after_merging_sku():
++    cart = Cart()
++    cart.add("A", 100, 9)
++    assert cart.line_total("A") == 900
++
++    cart.add("A", 100)
++    assert cart.line_total("A") == 950
++    assert cart.subtotal() == 950
++
++
++def test_line_total_missing_sku_raises_shop_error():
++    with pytest.raises(ShopError):
++        Cart().line_total("missing")

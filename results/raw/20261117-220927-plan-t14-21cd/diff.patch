@@ -1,0 +1,115 @@
+diff --git a/src/shoplib/storedays.py b/src/shoplib/storedays.py
+index c46116f..4c151e7 100644
+--- a/src/shoplib/storedays.py
++++ b/src/shoplib/storedays.py
+@@ -1,6 +1,46 @@
+ """Revenue per store day. See docs/store-days.md."""
+ 
++from datetime import datetime, timedelta, timezone
++
++from shoplib.errors import ShopError
++
+ 
+ def daily_revenue(sales: list[dict], utc_offset_hours: int = 8, day_starts_hour: int = 4) -> list[tuple[str, int]]:
+     """Revenue per store day. See docs/store-days.md."""
+-    raise NotImplementedError
++    if type(utc_offset_hours) is not int or not -23 <= utc_offset_hours <= 23:
++        raise ShopError("invalid UTC offset")
++    if type(day_starts_hour) is not int or not 0 <= day_starts_hour <= 23:
++        raise ShopError("invalid day start hour")
++    if not isinstance(sales, list):
++        raise ShopError("sales must be a list")
++
++    shop_zone = timezone(timedelta(hours=utc_offset_hours))
++    totals = {}
++    for sale in sales:
++        if (not isinstance(sale, dict) or not isinstance(sale.get("at"), str)
++                or type(sale.get("cents")) is not int):
++            raise ShopError("invalid sale")
++        try:
++            timestamp = datetime.fromisoformat(sale["at"])
++            if timestamp.utcoffset() is None:
++                raise ShopError("timestamp must have a zone")
++            local = timestamp.astimezone(shop_zone)
++            day = local.date()
++            if local.hour < day_starts_hour:
++                day -= timedelta(days=1)
++        except ShopError:
++            raise
++        except (ValueError, OverflowError) as exc:
++            raise ShopError("invalid timestamp") from exc
++        totals[day] = totals.get(day, 0) + sale["cents"]
++
++    if not totals:
++        return []
++
++    day, last = min(totals), max(totals)
++    result = []
++    while True:
++        result.append((day.isoformat(), totals.get(day, 0)))
++        if day == last:
++            return result
++        day += timedelta(days=1)
+diff --git a/tests/test_storedays.py b/tests/test_storedays.py
+new file mode 100644
+index 0000000..ac2de75
+--- /dev/null
++++ b/tests/test_storedays.py
+@@ -0,0 +1,57 @@
++import pytest
++
++from shoplib.errors import ShopError
++from shoplib.storedays import daily_revenue
++
++
++def test_default_boundary_and_offsets():
++    sales = [
++        {"at": "2026-11-18T04:00:00+08:00", "cents": 300},
++        {"at": "2026-11-17T19:59:59Z", "cents": 100},
++        {"at": "2026-11-17T16:30:00-03:00", "cents": -25},
++        {"at": "2026-11-18T03:00:00+09:00", "cents": 50},
++    ]
++    assert daily_revenue(sales) == [("2026-11-17", 125), ("2026-11-18", 300)]
++
++
++def test_custom_offset_start_and_gaps_across_year():
++    sales = [
++        {"at": "2027-01-03T06:00:00Z", "cents": 500},
++        {"at": "2027-01-01T01:59:59-03:00", "cents": 200},
++        {"at": "2027-01-01T06:00:00+00:00", "cents": -50},
++    ]
++    assert daily_revenue(sales, utc_offset_hours=-5, day_starts_hour=1) == [
++        ("2026-12-31", 200),
++        ("2027-01-01", -50),
++        ("2027-01-02", 0),
++        ("2027-01-03", 500),
++    ]
++
++
++def test_empty_and_midnight_start():
++    assert daily_revenue([]) == []
++    assert daily_revenue(
++        [{"at": "2026-11-18T00:00:00Z", "cents": 10}],
++        utc_offset_hours=0,
++        day_starts_hour=0,
++    ) == [("2026-11-18", 10)]
++
++
++@pytest.mark.parametrize("timestamp", ["2026-11-18T02:30:00", "not a timestamp"])
++def test_invalid_timestamp_raises_shop_error(timestamp):
++    with pytest.raises(ShopError):
++        daily_revenue([{"at": timestamp, "cents": 10}])
++
++
++@pytest.mark.parametrize("kwargs", [
++    {"utc_offset_hours": 24},
++    {"day_starts_hour": 24},
++])
++def test_invalid_configuration_raises_shop_error(kwargs):
++    with pytest.raises(ShopError):
++        daily_revenue([], **kwargs)
++
++
++def test_invalid_sale_raises_shop_error():
++    with pytest.raises(ShopError):
++        daily_revenue([{"at": "2026-11-18T02:30:00Z", "cents": 1.5}])

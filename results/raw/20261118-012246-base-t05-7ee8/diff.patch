@@ -1,0 +1,63 @@
+diff --git a/src/shoplib/reports.py b/src/shoplib/reports.py
+index d024fdc..5bc3d69 100644
+--- a/src/shoplib/reports.py
++++ b/src/shoplib/reports.py
+@@ -21,7 +21,13 @@ def sales_summary(sales: list[dict]) -> list[dict]:
+ 
+ def to_csv(rows: list[dict]) -> str:
+     """Render summary rows as CSV, following docs/CONVENTIONS.md."""
++    def field(value: object) -> str:
++        text = str(value)
++        if any(char in text for char in ',"\r\n'):
++            return '"' + text.replace('"', '""') + '"'
++        return text
++
+     lines = [",".join(COLUMNS)]
+     for row in rows:
+-        lines.append(",".join(str(row[col]) for col in COLUMNS))
++        lines.append(",".join(field(row[col]) for col in COLUMNS))
+     return "\n".join(lines) + "\n"
+diff --git a/tests/test_reports.py b/tests/test_reports.py
+index a578302..7919e44 100644
+--- a/tests/test_reports.py
++++ b/tests/test_reports.py
+@@ -1,3 +1,8 @@
++import csv
++import io
++
++import pytest
++
+ from shoplib.reports import sales_summary, to_csv
+ 
+ SALES = [
+@@ -16,3 +21,30 @@ def test_summary():
+ 
+ def test_csv():
+     assert to_csv(sales_summary(SALES)) == "sku,name,units,revenue_cents\nA,Mug,3,1350\nB,Bowl,1,900\n"
++
++
++@pytest.mark.parametrize(
++    ("value", "encoded"),
++    [
++        ("plain", "plain"),
++        ("red, blue", '"red, blue"'),
++        ('a "quote"', '"a ""quote"""'),
++        ("first\nsecond", '"first\nsecond"'),
++        ("first\rsecond", '"first\rsecond"'),
++        ("first\r\nsecond", '"first\r\nsecond"'),
++        ('a,"b"\nc', '"a,""b""\nc"'),
++        ("", ""),
++    ],
++)
++def test_csv_escapes_fields_and_round_trips(value, encoded):
++    row = dict.fromkeys(("sku", "name", "units", "revenue_cents"), value)
++    output = to_csv([row])
++    assert output == "sku,name,units,revenue_cents\n" + ",".join([encoded] * 4) + "\n"
++    assert list(csv.reader(io.StringIO(output, newline=""))) == [
++        ["sku", "name", "units", "revenue_cents"],
++        [value] * 4,
++    ]
++
++
++def test_csv_empty_rows_have_header():
++    assert to_csv([]) == "sku,name,units,revenue_cents\n"

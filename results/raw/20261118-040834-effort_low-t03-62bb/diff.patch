@@ -1,0 +1,86 @@
+diff --git a/src/shoplib/inventory.py b/src/shoplib/inventory.py
+index 69cd1dc..c881bac 100644
+--- a/src/shoplib/inventory.py
++++ b/src/shoplib/inventory.py
+@@ -1,5 +1,7 @@
+ """Stock levels: on hand, reserved for orders, and available."""
+ 
++from .errors import ShopError
++
+ 
+ class Inventory:
+     def __init__(self):
+@@ -35,7 +37,16 @@ class Inventory:
+         the SKU (including a SKU with nothing reserved) raises ValueError and
+         changes nothing.
+         """
+-        raise NotImplementedError
++        if qty <= 0:
++            raise ShopError("qty must be positive")
++        currently_reserved = self.reserved(sku)
++        if qty > currently_reserved:
++            raise ShopError(f"only {currently_reserved} of {sku} reserved")
++        remaining = currently_reserved - qty
++        if remaining:
++            self._reserved[sku] = remaining
++        else:
++            self._reserved.pop(sku, None)
+ 
+     def ship(self, sku: str, qty: int) -> None:
+         """Ship `qty` reserved units: they leave both reserved and on hand."""
+diff --git a/tests/test_inventory.py b/tests/test_inventory.py
+index 37436c0..4ea62b5 100644
+--- a/tests/test_inventory.py
++++ b/tests/test_inventory.py
+@@ -18,3 +18,51 @@ def test_cannot_reserve_more_than_available():
+     inv.receive("A", 2)
+     with pytest.raises(ValueError):
+         inv.reserve("A", 3)
++
++
++def test_release_returns_reserved_units_to_available():
++    inv = Inventory()
++    inv.receive("A", 10)
++    inv.reserve("A", 6)
++
++    inv.release("A", 2)
++    assert inv.on_hand("A") == 10
++    assert inv.reserved("A") == 4
++    assert inv.available("A") == 6
++
++    inv.release("A", 4)
++    assert inv.on_hand("A") == 10
++    assert inv.reserved("A") == 0
++    assert inv.available("A") == 10
++
++
++@pytest.mark.parametrize("qty", [0, -1])
++def test_release_requires_positive_quantity(qty):
++    inv = Inventory()
++    inv.receive("A", 5)
++    inv.reserve("A", 3)
++
++    with pytest.raises(ValueError, match="qty must be positive"):
++        inv.release("A", qty)
++
++    assert inv.on_hand("A") == 5
++    assert inv.reserved("A") == 3
++    assert inv.available("A") == 2
++
++
++@pytest.mark.parametrize(
++    ("sku", "reserved", "qty"),
++    [("A", 2, 3), ("MISSING", 0, 1)],
++)
++def test_cannot_release_more_than_reserved(sku, reserved, qty):
++    inv = Inventory()
++    inv.receive("A", 5)
++    if reserved:
++        inv.reserve("A", reserved)
++
++    with pytest.raises(ValueError, match="reserved"):
++        inv.release(sku, qty)
++
++    assert inv.on_hand("A") == 5
++    assert inv.reserved("A") == reserved
++    assert inv.available("A") == 5 - reserved

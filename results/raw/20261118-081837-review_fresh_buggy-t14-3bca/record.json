@@ -1,0 +1,133 @@
+{
+  "run_id": "20261118-081837-review_fresh_buggy-t14-3bca",
+  "ts": "2026-11-18T00:19:10+00:00",
+  "tag": "full-luna",
+  "condition": "review_fresh_buggy",
+  "task": "t14-store-days",
+  "model": "gpt-6-luna",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "review_fresh",
+  "variant": "buggy",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 32.1,
+      "usage": {
+        "input_tokens": 117605,
+        "cached_input_tokens": 98619,
+        "cache_write_input_tokens": 18965,
+        "output_tokens": 3080,
+        "reasoning_output_tokens": 1455
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 117605,
+    "cached_input_tokens": 98619,
+    "cache_write_input_tokens": 18965,
+    "output_tokens": 3080,
+    "reasoning_output_tokens": 1455
+  },
+  "cost_usd": 0.00727,
+  "cost_usd_low": 0.0049,
+  "wall_s": 32.1,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_early_morning_belongs_to_previous_day",
+      "test_empty",
+      "test_exactly_at_start_hour_is_new_day",
+      "test_gaps_filled_with_zero_and_sorted",
+      "test_naive_timestamp_is_an_error",
+      "test_offsets_in_timestamps",
+      "test_other_offset_and_start",
+      "test_totals_and_refunds",
+      "test_year_boundary"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "25 passed in 0.01s"
+    ]
+  },
+  "rule_followed": null,
+  "changed_files": [
+    "src/shoplib/storedays.py",
+    "tests/test_storedays.py"
+  ],
+  "out_of_scope": [],
+  "commands": 5,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "applied_exactly": true,
+  "before_review": {
+    "passed": [
+      "test_early_morning_belongs_to_previous_day",
+      "test_empty",
+      "test_naive_timestamp_is_an_error",
+      "test_offsets_in_timestamps",
+      "test_other_offset_and_start",
+      "test_totals_and_refunds",
+      "test_year_boundary"
+    ],
+    "failed": [
+      "test_exactly_at_start_hour_is_new_day",
+      "test_gaps_filled_with_zero_and_sorted"
+    ],
+    "error": null,
+    "ok": false
+  },
+  "findings": [
+    {
+      "file": "src/shoplib/storedays.py",
+      "description": "The microsecond subtraction assigned a sale exactly at the store-day start to the previous day. Fixed the boundary calculation so the start hour belongs to the current store day."
+    },
+    {
+      "file": "src/shoplib/storedays.py",
+      "description": "Days without sales were omitted from the result. Fixed the output to include every day between the first and last sale with a zero total for gaps."
+    },
+    {
+      "file": "src/shoplib/storedays.py",
+      "description": "A timestamp without a zone raised bare ValueError, contrary to the repository rule for invalid input. It now raises ShopError, which is a ValueError subclass."
+    },
+    {
+      "file": "tests/test_storedays.py",
+      "description": "Added coverage for the boundary, timezone conversion, refunds, gaps, empty input, and naive-timestamp error. `python -m pytest -q` passes (25 tests); `git diff --check` is clean."
+    }
+  ],
+  "bug_signatures": {
+    "start-hour-goes-to-previous-day": [
+      "test_exactly_at_start_hour_is_new_day"
+    ],
+    "no-gap-days": [
+      "test_gaps_filled_with_zero_and_sorted"
+    ]
+  },
+  "bugs_caught": [
+    "no-gap-days",
+    "start-hour-goes-to-previous-day"
+  ],
+  "regressions": []
+}

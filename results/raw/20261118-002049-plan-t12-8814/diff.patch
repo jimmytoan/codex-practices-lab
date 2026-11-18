@@ -1,0 +1,182 @@
+diff --git a/src/shoplib/search.py b/src/shoplib/search.py
+index 2c1a324..8621961 100644
+--- a/src/shoplib/search.py
++++ b/src/shoplib/search.py
+@@ -1,6 +1,10 @@
+ """Product search. See docs/search.md."""
+ 
+ from dataclasses import dataclass, field
++import operator
++import re
++
++from shoplib.errors import ShopError
+ 
+ 
+ @dataclass
+@@ -13,4 +17,87 @@ class Product:
+ 
+ def search(products: list[Product], query: str) -> list[Product]:
+     """The products that match `query`, in their input order. See docs/search.md."""
+-    raise NotImplementedError
++    terms = [_parse_term(token) for token in _tokenize(query)]
++    return [product for product in products if all(_matches(product, term) for term in terms)]
++
++
++def _tokenize(query: str) -> list[list[tuple[str, bool]]]:
++    """Keep track of quoted characters so quoted terms remain literal."""
++    tokens = []
++    token = []
++    quoted = False
++    started = False
++    for char in query:
++        if char == '"':
++            quoted = not quoted
++            started = True
++        elif char.isspace() and not quoted:
++            if started:
++                tokens.append(token)
++                token = []
++                started = False
++        else:
++            token.append((char, quoted))
++            started = True
++    if quoted:
++        raise ShopError("unclosed quote")
++    if started:
++        tokens.append(token)
++    return tokens
++
++
++def _parse_term(token: list[tuple[str, bool]]) -> tuple:
++    negated = bool(token and token[0] == ("-", False))
++    if negated:
++        token = token[1:]
++        if not token:
++            raise ShopError("empty negated term")
++
++    value = "".join(char for char, _ in token)
++    for index, (char, quoted) in enumerate(token):
++        if char == ":" and not quoted:
++            field_name, field_value = value[:index], value[index + 1:]
++            if field_name not in {"sku", "name", "tag"}:
++                raise ShopError("unknown search field")
++            if not field_value:
++                raise ShopError("empty field value")
++            return (field_name, field_value.casefold(), negated)
++
++    comparison = re.match(r"price(<=|>=|<|>|=)", value)
++    if comparison and not any(quoted for _, quoted in token[:comparison.end()]):
++        amount = value[comparison.end():]
++        if not re.fullmatch(r"[0-9]+", amount):
++            raise ShopError("invalid price")
++        # Convert in chunks to support whole numbers of any length.
++        cents = 0
++        for start in range(0, len(amount), 9):
++            chunk = amount[start:start + 9]
++            cents = cents * (10 ** len(chunk)) + int(chunk)
++        return ("price", (_COMPARISONS[comparison.group(1)], cents), negated)
++
++    return ("name", value.casefold(), negated)
++
++
++_COMPARISONS = {
++    "<": operator.lt,
++    "<=": operator.le,
++    ">": operator.gt,
++    ">=": operator.ge,
++    "=": operator.eq,
++}
++
++
++def _matches(product: Product, term: tuple) -> bool:
++    field_name, value, negated = term
++    if field_name == "price":
++        comparison, cents = value
++        matched = comparison(product.price_cents, cents)
++    elif field_name == "name":
++        matched = value in product.name.casefold()
++    else:
++        candidates = [product.sku] if field_name == "sku" else product.tags
++        if value.endswith("*"):
++            matched = any(candidate.casefold().startswith(value[:-1]) for candidate in candidates)
++        else:
++            matched = any(candidate.casefold() == value for candidate in candidates)
++    return not matched if negated else matched
+diff --git a/tests/test_search.py b/tests/test_search.py
+new file mode 100644
+index 0000000..1f4778e
+--- /dev/null
++++ b/tests/test_search.py
+@@ -0,0 +1,72 @@
++import pytest
++
++from shoplib.errors import ShopError
++from shoplib.search import Product, search
++
++
++@pytest.fixture
++def products():
++    return [
++        Product("MUG-1", "Blue Mug", 1000, ["Sale", "Kitchen"]),
++        Product("MUG-2", "blue travel mug", 1500, ["kitchenware"]),
++        Product("PLATE-1", "Red Plate", 500, ["SALE"]),
++        Product("MUG-*3", "Star* Mug", 1000, ["star*tag"]),
++        Product("OTHER", "A tag:sale and price>=1000 sign", 0),
++    ]
++
++
++@pytest.mark.parametrize(
++    ("query", "indices"),
++    [
++        ("", [0, 1, 2, 3, 4]),
++        (" \t\n", [0, 1, 2, 3, 4]),
++        ("BLue", [0, 1]),
++        ('"blue mug"', [0]),
++        ('name:"BLUE MUG"', [0]),
++        ("blue mug", [0, 1]),
++        ("sku:mug-1", [0]),
++        ("tag:sale", [0, 2]),
++        ("sku:MUG-*", [0, 1, 3]),
++        ("tag:KITCHEN*", [0, 1]),
++        ("sku:MUG-*3", [3]),
++        ("tag:star*tag", [3]),
++        ("name:star*", [3]),
++        ("sku:*", [0, 1, 2, 3, 4]),
++        ("tag:*", [0, 1, 2, 3]),
++        ("price<1000", [2, 4]),
++        ("price<=1000", [0, 2, 3, 4]),
++        ("price>1000", [1]),
++        ("price>=1000", [0, 1, 3]),
++        ("price=1000", [0, 3]),
++        ("-tag:sale", [1, 3, 4]),
++        ("-price>=1000", [2, 4]),
++        ('-"blue mug"', [1, 2, 3, 4]),
++        ("mug -tag:sale price>=1000", [1, 3]),
++        ('"tag:sale"', [4]),
++        ('"price>=1000"', [4]),
++    ],
++)
++def test_matching(products, query, indices):
++    assert search(products, query) == [products[index] for index in indices]
++
++
++@pytest.mark.parametrize(
++    "query",
++    [
++        "color:blue", "price:5", "tag:", 'name:""', "sku:",
++        "-", '-""', '"unclosed', 'name:"unclosed',
++        "price<", "price<=abc", "price>1.5", "price>=-1", "price=1x",
++        "price==5", "-price>=nope", "mug tag:",
++    ],
++)
++def test_invalid_queries_raise_even_without_products(query):
++    with pytest.raises(ShopError):
++        search([], query)
++
++
++def test_large_whole_number_price(products):
++    assert search(products, "price<" + "9" * 5000) == products
++
++
++def test_empty_quoted_phrase_matches_every_name(products):
++    assert search(products, '""') == products

@@ -1,0 +1,183 @@
+diff --git a/src/shoplib/search.py b/src/shoplib/search.py
+index 2c1a324..0e439fd 100644
+--- a/src/shoplib/search.py
++++ b/src/shoplib/search.py
+@@ -1,7 +1,11 @@
+ """Product search. See docs/search.md."""
+ 
++import operator
++import re
+ from dataclasses import dataclass, field
+ 
++from shoplib.errors import ShopError
++
+ 
+ @dataclass
+ class Product:
+@@ -13,4 +17,78 @@ class Product:
+ 
+ def search(products: list[Product], query: str) -> list[Product]:
+     """The products that match `query`, in their input order. See docs/search.md."""
+-    raise NotImplementedError
++    predicates = [_term(text, first_quote) for text, first_quote in _tokens(query)]
++    return [p for p in products if all(pred(p) for pred in predicates)]
++
++
++FIELDS = ("sku", "name", "tag")
++PRICE = re.compile(r"price(<=|>=|<|>|=)(.*)\Z", re.S)
++OPS = {"<": operator.lt, "<=": operator.le, ">": operator.gt, ">=": operator.ge, "=": operator.eq}
++
++
++def _tokens(query):
++    """Split on whitespace outside quotes. Each token is (text without quotes, index where the first quote was)."""
++    tokens, cur, in_quote, started, first_quote = [], [], False, False, None
++    for ch in query:
++        if ch == '"':
++            if first_quote is None:
++                first_quote = len(cur)
++            in_quote = not in_quote
++            started = True
++        elif ch.isspace() and not in_quote:
++            if started:
++                tokens.append(("".join(cur), first_quote))
++            cur, started, first_quote = [], False, None
++        else:
++            cur.append(ch)
++            started = True
++    if in_quote:
++        raise ShopError("unclosed quote")
++    if started:
++        tokens.append(("".join(cur), first_quote))
++    return tokens
++
++
++def _term(text, first_quote):
++    if text.startswith("-") and first_quote != 0:
++        inner = _term_body(text[1:], None if first_quote is None else first_quote - 1)
++        return lambda p: not inner(p)
++    return _term_body(text, first_quote)
++
++
++def _term_body(text, first_quote):
++    if text == "" and first_quote is None:
++        raise ShopError("empty term")
++    unquoted = text if first_quote is None else text[:first_quote]
++    m = PRICE.match(unquoted)
++    if m:
++        op = m.group(1)
++        value = text[m.start(2):]
++        if not re.fullmatch(r"[0-9]+", value):
++            raise ShopError(f"bad price {value!r}")
++        # Convert in small chunks to support whole numbers beyond Python's
++        # configurable limit for decimal string-to-int conversions.
++        cents = 0
++        for i in range(0, len(value), 9):
++            chunk = value[i:i + 9]
++            cents = cents * 10 ** len(chunk) + int(chunk)
++        return lambda p: OPS[op](p.price_cents, cents)
++    if ":" in unquoted:
++        field, value = text.split(":", 1)
++        if field not in FIELDS:
++            raise ShopError(f"unknown field {field!r}")
++        if value == "":
++            raise ShopError(f"empty value for {field}")
++        v = value.casefold()
++        if field == "name":
++            return lambda p: v in p.name.casefold()
++        if v.endswith("*"):
++            prefix = v[:-1]
++            if field == "sku":
++                return lambda p: p.sku.casefold().startswith(prefix)
++            return lambda p: any(t.casefold().startswith(prefix) for t in p.tags)
++        if field == "sku":
++            return lambda p: p.sku.casefold() == v
++        return lambda p: any(t.casefold() == v for t in p.tags)
++    word = text.casefold()
++    return lambda p: word in p.name.casefold()
+diff --git a/tests/test_search.py b/tests/test_search.py
+new file mode 100644
+index 0000000..8ac1f38
+--- /dev/null
++++ b/tests/test_search.py
+@@ -0,0 +1,81 @@
++import pytest
++
++from shoplib.errors import ShopError
++from shoplib.search import Product, search
++
++
++@pytest.fixture
++def products():
++    return [
++        Product("MUG-BLUE", "Blue Mug", 1000, ["Sale", "Kitchen"]),
++        Product("MUG-RED", "Red Mug", 1500, ["Kitchen", "gift"]),
++        Product("PLATE", "Blue Plate", 500, ["Sale"]),
++    ]
++
++
++@pytest.mark.parametrize(
++    ("query", "indices"),
++    [
++        ("", [0, 1, 2]),
++        (" \t\n", [0, 1, 2]),
++        ("BLUE", [0, 2]),
++        ('"blue mug"', [0]),
++        ('name:"BLUE MUG"', [0]),
++        ('"tag:sale"', []),
++        ("sku:mug-blue", [0]),
++        ("tag:sAlE", [0, 2]),
++        ("sku:MUG-*", [0, 1]),
++        ("tag:kit*", [0, 1]),
++        ("tag:*", [0, 1, 2]),
++        ("name:blu*", []),
++        ("sku:MU*BLUE", []),
++        ("blue tag:sale -sku:PLATE", [0]),
++        ('-"blue mug"', [1, 2]),
++        ("-tag:sale", [1]),
++        ("price<1000", [2]),
++        ("price<=1000", [0, 2]),
++        ("price>1000", [1]),
++        ("price>=1000", [0, 1]),
++        ("price=1000", [0]),
++        ('price>="1000"', [0, 1]),
++        ("-price>=1000", [2]),
++    ],
++)
++def test_matching(products, query, indices):
++    assert search(products, query) == [products[i] for i in indices]
++
++
++@pytest.mark.parametrize(
++    "query",
++    [
++        "unknown:value", "price:5", "tag:", 'name:""', "sku:",
++        "-", '"unclosed', 'tag:"unclosed',
++        "price<", "price>=-1", "price=1.5", "price=1x", "price==1",
++        'price>="nope"', 'price=""',
++    ],
++)
++def test_invalid_queries_raise_shop_error_even_without_products(query):
++    with pytest.raises(ShopError):
++        search([], query)
++
++
++def test_literal_asterisks_and_quoted_syntax():
++    product = Product("A*B", 'price>=10 -sale tag:sale', 10, ["a*b"])
++    assert search([product], "sku:A*B tag:a*b") == [product]
++    assert search([product], '"price>=10" "-sale" "tag:sale"') == [product]
++    assert search([Product("x", "x", 10)], "tag:*") == []
++
++
++def test_unicode_case_insensitive_matching():
++    product = Product("Straße-1", "Straße Mug", 10, ["Straße"])
++    for query in ("STRASSE", "name:STRASSE", "sku:STRASSE-1", "sku:STRASSE*",
++                  "tag:STRASSE", "tag:STRASSE*"):
++        assert search([product], query) == [product]
++
++
++def test_price_comparisons_accept_very_large_whole_numbers():
++    amount = "1" + "0" * 5000
++    product = Product("x", "x", 10 ** 5000)
++    assert search([product], "price=" + amount) == [product]
++    assert search([product], "price<" + amount) == []
++    assert search([Product("y", "y", 0)], "price=" + "0" * 5000) != []

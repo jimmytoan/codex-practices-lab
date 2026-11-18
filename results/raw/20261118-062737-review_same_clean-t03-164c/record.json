@@ -1,0 +1,127 @@
+{
+  "run_id": "20261118-062737-review_same_clean-t03-164c",
+  "ts": "2026-11-17T22:28:07+00:00",
+  "tag": "full-luna",
+  "condition": "review_same_clean",
+  "task": "t03-inventory-release",
+  "model": "gpt-6-luna",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "review_same",
+  "variant": "clean",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 10.0,
+      "usage": {
+        "input_tokens": 28795,
+        "cached_input_tokens": 14156,
+        "cache_write_input_tokens": 14633,
+        "output_tokens": 503,
+        "reasoning_output_tokens": 64
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    },
+    {
+      "status": "ok",
+      "wall_s": 18.0,
+      "usage": {
+        "input_tokens": 93360,
+        "cached_input_tokens": 61378,
+        "cache_write_input_tokens": 31964,
+        "output_tokens": 2118,
+        "reasoning_output_tokens": 1216
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 122155,
+    "cached_input_tokens": 75534,
+    "cache_write_input_tokens": 46597,
+    "output_tokens": 2621,
+    "reasoning_output_tokens": 1280
+  },
+  "cost_usd": 0.01372,
+  "cost_usd_low": 0.00789,
+  "wall_s": 28.0,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_qty_must_be_positive[-1]",
+      "test_qty_must_be_positive[0]",
+      "test_release_all_then_reserve_again",
+      "test_release_more_than_reserved_changes_nothing",
+      "test_release_part",
+      "test_unknown_or_unreserved_sku"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "21 passed in 0.01s"
+    ]
+  },
+  "rule_followed": true,
+  "changed_files": [
+    "src/shoplib/inventory.py"
+  ],
+  "out_of_scope": [],
+  "commands": 4,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      },
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "applied_exactly": true,
+  "before_review": {
+    "passed": [
+      "test_qty_must_be_positive[-1]",
+      "test_qty_must_be_positive[0]",
+      "test_release_all_then_reserve_again",
+      "test_release_more_than_reserved_changes_nothing",
+      "test_release_part",
+      "test_unknown_or_unreserved_sku"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "findings": [],
+  "bug_signatures": {
+    "checks-on-hand": [
+      "test_release_more_than_reserved_changes_nothing",
+      "test_unknown_or_unreserved_sku"
+    ],
+    "accepts-zero": [
+      "test_qty_must_be_positive[0]"
+    ]
+  },
+  "bugs_caught": [
+    "accepts-zero",
+    "checks-on-hand"
+  ],
+  "regressions": []
+}

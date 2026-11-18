@@ -1,0 +1,103 @@
+{
+  "run_id": "20261117-220138-plan-t08-22af",
+  "ts": "2026-11-17T14:02:35+00:00",
+  "tag": "full-terra",
+  "condition": "plan",
+  "task": "t08-cli-json",
+  "model": "gpt-6.1-terra",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "plan",
+  "variant": "",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 20.0,
+      "usage": {
+        "input_tokens": 45669,
+        "cached_input_tokens": 29658,
+        "cache_write_input_tokens": 16002,
+        "output_tokens": 417,
+        "reasoning_output_tokens": 46
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    },
+    {
+      "status": "ok",
+      "wall_s": 36.1,
+      "usage": {
+        "input_tokens": 117219,
+        "cached_input_tokens": 97650,
+        "cache_write_input_tokens": 19548,
+        "output_tokens": 1753,
+        "reasoning_output_tokens": 89
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 162888,
+    "cached_input_tokens": 127308,
+    "cache_write_input_tokens": 35550,
+    "output_tokens": 2170,
+    "reasoning_output_tokens": 135
+  },
+  "cost_usd": 0.10612,
+  "cost_usd_low": 0.06168,
+  "wall_s": 56.1,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_default_is_still_csv",
+      "test_empty_sales_json",
+      "test_explicit_csv",
+      "test_flag_before_file",
+      "test_json_content",
+      "test_json_layout_follows_conventions",
+      "test_unknown_format_is_a_usage_error"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "25 passed in 0.02s"
+    ]
+  },
+  "rule_followed": null,
+  "changed_files": [
+    "docs/cli.md",
+    "src/shoplib/cli.py",
+    "tests/test_cli.py"
+  ],
+  "out_of_scope": [],
+  "commands": 10,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6.1-terra",
+        "effort": "medium",
+        "sandbox": "read-only"
+      },
+      {
+        "model": "gpt-6.1-terra",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "plan_text": "1. Add `--format` with `csv` and `json` choices, defaulting to CSV. Serialize JSON using the documented indentation, key sorting, and trailing newline.\n2. Update the CLI documentation and add tests for both formats, summary values, and invalid-format usage errors.\n3. Run `python -m pytest -q`.",
+  "edits_during_plan": []
+}

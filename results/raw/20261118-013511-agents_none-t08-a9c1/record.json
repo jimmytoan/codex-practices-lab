@@ -1,0 +1,83 @@
+{
+  "run_id": "20261118-013511-agents_none-t08-a9c1",
+  "ts": "2026-11-17T17:35:46+00:00",
+  "tag": "full-terra",
+  "condition": "agents_none",
+  "task": "t08-cli-json",
+  "model": "gpt-6.1-terra",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "none",
+  "prompt": "four_part",
+  "mode": "direct",
+  "variant": "",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 34.1,
+      "usage": {
+        "input_tokens": 80271,
+        "cached_input_tokens": 61992,
+        "cache_write_input_tokens": 18264,
+        "output_tokens": 1581,
+        "reasoning_output_tokens": 85
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 80271,
+    "cached_input_tokens": 61992,
+    "cache_write_input_tokens": 18264,
+    "output_tokens": 1581,
+    "reasoning_output_tokens": 85
+  },
+  "cost_usd": 0.05668,
+  "cost_usd_low": 0.03385,
+  "wall_s": 34.1,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_default_is_still_csv",
+      "test_empty_sales_json",
+      "test_explicit_csv",
+      "test_flag_before_file",
+      "test_json_content",
+      "test_json_layout_follows_conventions",
+      "test_unknown_format_is_a_usage_error"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "24 passed in 0.01s"
+    ]
+  },
+  "rule_followed": null,
+  "changed_files": [
+    "docs/cli.md",
+    "src/shoplib/cli.py",
+    "tests/test_cli.py"
+  ],
+  "out_of_scope": [],
+  "commands": 7,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 0,
+    "agents_loaded_text_tail": null,
+    "turns": [
+      {
+        "model": "gpt-6.1-terra",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": false
+  }
+}

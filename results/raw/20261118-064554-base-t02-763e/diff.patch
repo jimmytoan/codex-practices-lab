@@ -1,0 +1,47 @@
+diff --git a/src/shoplib/cart.py b/src/shoplib/cart.py
+index 9150045..7e24b23 100644
+--- a/src/shoplib/cart.py
++++ b/src/shoplib/cart.py
+@@ -2,6 +2,8 @@
+ 
+ from dataclasses import dataclass
+ 
++from shoplib.money import percent_of
++
+ 
+ @dataclass
+ class Line:
+@@ -38,7 +40,10 @@ class Cart:
+         if sku not in self._lines:
+             raise ValueError(f"{sku} is not in the cart")
+         line = self._lines[sku]
+-        return line.unit_price_cents * line.qty
++        total = line.unit_price_cents * line.qty
++        if line.qty >= 10:
++            total -= percent_of(total, 5)
++        return total
+ 
+     def subtotal(self) -> int:
+         """Sum of all line totals in cents."""
+diff --git a/tests/test_cart.py b/tests/test_cart.py
+index 1a3d0e7..f49856d 100644
+--- a/tests/test_cart.py
++++ b/tests/test_cart.py
+@@ -18,6 +18,17 @@ def test_add_same_sku_merges():
+     assert cart.line_total("A") == 1250
+ 
+ 
++def test_ten_units_discount_the_line_total_and_subtotal():
++    cart = Cart()
++    cart.add("A", 101, 9)
++    assert cart.line_total("A") == 909
++    assert cart.subtotal() == 909
++
++    cart.add("A", 101)
++    assert cart.line_total("A") == 959
++    assert cart.subtotal() == 959
++
++
+ def test_bad_qty():
+     with pytest.raises(ValueError):
+         Cart().add("A", 250, 0)

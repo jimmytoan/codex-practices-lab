@@ -1,0 +1,17 @@
+diff --git a/src/shoplib/inventory.py b/src/shoplib/inventory.py
+index 69cd1dc..086000f 100644
+--- a/src/shoplib/inventory.py
++++ b/src/shoplib/inventory.py
+@@ -35,7 +35,11 @@ class Inventory:
+         the SKU (including a SKU with nothing reserved) raises ValueError and
+         changes nothing.
+         """
+-        raise NotImplementedError
++        if qty <= 0:
++            raise ValueError("qty must be positive")
++        if qty > self.reserved(sku):
++            raise ValueError(f"only {self.reserved(sku)} of {sku} reserved")
++        self._reserved[sku] = self.reserved(sku) - qty
+ 
+     def ship(self, sku: str, qty: int) -> None:
+         """Ship `qty` reserved units: they leave both reserved and on hand."""

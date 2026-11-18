@@ -1,0 +1,109 @@
+{
+  "run_id": "20261118-073954-plan-t10-4e8f",
+  "ts": "2026-11-17T23:41:03+00:00",
+  "tag": "full-luna",
+  "condition": "plan",
+  "task": "t10-split-parcels",
+  "model": "gpt-6-luna",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "plan",
+  "variant": "",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 18.1,
+      "usage": {
+        "input_tokens": 43703,
+        "cached_input_tokens": 28339,
+        "cache_write_input_tokens": 15355,
+        "output_tokens": 1308,
+        "reasoning_output_tokens": 896
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    },
+    {
+      "status": "ok",
+      "wall_s": 50.2,
+      "usage": {
+        "input_tokens": 144669,
+        "cached_input_tokens": 121925,
+        "cache_write_input_tokens": 22720,
+        "output_tokens": 6201,
+        "reasoning_output_tokens": 4133
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 188372,
+    "cached_input_tokens": 150264,
+    "cache_write_input_tokens": 38075,
+    "output_tokens": 7509,
+    "reasoning_output_tokens": 5029
+  },
+  "cost_usd": 0.01478,
+  "cost_usd_low": 0.01002,
+  "wall_s": 68.3,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_bad_item[item0]",
+      "test_bad_item[item1]",
+      "test_bad_item[item2]",
+      "test_bad_item[item3]",
+      "test_empty",
+      "test_exact_fit_is_allowed",
+      "test_first_fit_not_best_fit",
+      "test_heaviest_first_and_first_fit",
+      "test_input_not_mutated",
+      "test_later_small_unit_fills_earlier_parcel",
+      "test_shipment_cost",
+      "test_single_parcel",
+      "test_ties_ordered_by_sku",
+      "test_unit_too_heavy"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "29 passed in 0.02s"
+    ]
+  },
+  "rule_followed": true,
+  "changed_files": [
+    "src/shoplib/shipping.py",
+    "tests/test_shipping.py"
+  ],
+  "out_of_scope": [],
+  "commands": 4,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "read-only"
+      },
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "plan_text": "1. Implement first-fit decreasing in `split_parcels`: expand units, sort by descending weight then ascending SKU, and pack into the first parcel with room.\n2. Add the specified validation and empty-list behavior, using `ShopError` for invalid inputs; it remains a `ValueError` subclass.\n3. Make `shipment_cost` use the same packing result and sum `shipping_cost` for each parcel, leaving `shipping_cost` unchanged.\n4. Add tests in `tests/test_shipping.py` for packing order, capacity boundaries, empty input, validation errors, and shipment totals; run `python -m pytest -q`.",
+  "edits_during_plan": []
+}

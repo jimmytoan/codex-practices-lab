@@ -1,0 +1,143 @@
+{
+  "run_id": "20261117-225845-review_same_clean-t06-2740",
+  "ts": "2026-11-17T14:59:33+00:00",
+  "tag": "full-terra",
+  "condition": "review_same_clean",
+  "task": "t06-business-days",
+  "model": "gpt-6.1-terra",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "review_same",
+  "variant": "clean",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 14.0,
+      "usage": {
+        "input_tokens": 45179,
+        "cached_input_tokens": 29919,
+        "cache_write_input_tokens": 15251,
+        "output_tokens": 430,
+        "reasoning_output_tokens": 16
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    },
+    {
+      "status": "ok",
+      "wall_s": 32.5,
+      "usage": {
+        "input_tokens": 131271,
+        "cached_input_tokens": 97251,
+        "cache_write_input_tokens": 33996,
+        "output_tokens": 1691,
+        "reasoning_output_tokens": 325
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 176450,
+    "cached_input_tokens": 127170,
+    "cache_write_input_tokens": 49247,
+    "output_tokens": 2121,
+    "reasoning_output_tokens": 341
+  },
+  "cost_usd": 0.14011,
+  "cost_usd_low": 0.07856,
+  "wall_s": 46.5,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_backward",
+      "test_backward_from_weekend",
+      "test_backward_skips_holidays",
+      "test_forward_skips_holidays",
+      "test_forward_still_works",
+      "test_holiday_on_weekend_changes_nothing",
+      "test_round_trip[10]",
+      "test_round_trip[23]",
+      "test_round_trip[5]",
+      "test_zero_on_business_day",
+      "test_zero_on_holiday_moves_forward",
+      "test_zero_on_weekend_moves_forward"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "28 passed in 0.02s"
+    ]
+  },
+  "rule_followed": null,
+  "changed_files": [
+    "src/shoplib/dates.py",
+    "tests/test_dates.py"
+  ],
+  "out_of_scope": [],
+  "commands": 12,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6.1-terra",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      },
+      {
+        "model": "gpt-6.1-terra",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "applied_exactly": true,
+  "before_review": {
+    "passed": [
+      "test_backward",
+      "test_backward_from_weekend",
+      "test_backward_skips_holidays",
+      "test_forward_skips_holidays",
+      "test_forward_still_works",
+      "test_holiday_on_weekend_changes_nothing",
+      "test_round_trip[10]",
+      "test_round_trip[23]",
+      "test_round_trip[5]",
+      "test_zero_on_business_day",
+      "test_zero_on_holiday_moves_forward",
+      "test_zero_on_weekend_moves_forward"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "findings": [],
+  "bug_signatures": {
+    "zero-does-not-move": [
+      "test_zero_on_holiday_moves_forward",
+      "test_zero_on_weekend_moves_forward"
+    ],
+    "backward-ignores-holidays": [
+      "test_backward_skips_holidays",
+      "test_round_trip[10]",
+      "test_round_trip[23]",
+      "test_round_trip[5]"
+    ]
+  },
+  "bugs_caught": [
+    "backward-ignores-holidays",
+    "zero-does-not-move"
+  ],
+  "regressions": []
+}

@@ -1,0 +1,94 @@
+{
+  "run_id": "20261117-212524-agents_none-t12-a3da",
+  "ts": "2026-11-17T13:26:43+00:00",
+  "tag": "full-terra",
+  "condition": "agents_none",
+  "task": "t12-search-query",
+  "model": "gpt-6.1-terra",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "none",
+  "prompt": "four_part",
+  "mode": "direct",
+  "variant": "",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 78.2,
+      "usage": {
+        "input_tokens": 159040,
+        "cached_input_tokens": 138969,
+        "cache_write_input_tokens": 20044,
+        "output_tokens": 4248,
+        "reasoning_output_tokens": 953
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 159040,
+    "cached_input_tokens": 138969,
+    "cache_write_input_tokens": 20044,
+    "output_tokens": 4248,
+    "reasoning_output_tokens": 953
+  },
+  "cost_usd": 0.07833,
+  "cost_usd_low": 0.05327,
+  "wall_s": 78.2,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_bare_words_are_substrings_and_all_must_match",
+      "test_empty_query_matches_all",
+      "test_errors[\"unclosed]",
+      "test_errors[-]",
+      "test_errors[colour:red]",
+      "test_errors[name:\"open]",
+      "test_errors[price:5]",
+      "test_errors[price>=12.5]",
+      "test_errors[price>abc]",
+      "test_errors[tag:]",
+      "test_name_field",
+      "test_negation",
+      "test_price",
+      "test_quoted_phrase",
+      "test_sku_is_exact_case_insensitive",
+      "test_sku_prefix",
+      "test_star_inside_value_is_literal",
+      "test_tab_separates_terms",
+      "test_tags"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "92 passed in 0.03s"
+    ]
+  },
+  "rule_followed": null,
+  "changed_files": [
+    "src/shoplib/search.py",
+    "tests/test_search.py"
+  ],
+  "out_of_scope": [],
+  "commands": 13,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 0,
+    "agents_loaded_text_tail": null,
+    "turns": [
+      {
+        "model": "gpt-6.1-terra",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": false
+  }
+}

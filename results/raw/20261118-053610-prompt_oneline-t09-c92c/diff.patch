@@ -1,0 +1,25 @@
+diff --git a/src/shoplib/textutil.py b/src/shoplib/textutil.py
+index 061dc23..b06f564 100644
+--- a/src/shoplib/textutil.py
++++ b/src/shoplib/textutil.py
+@@ -1,6 +1,7 @@
+ """Text helpers for URLs and listings."""
+ 
+ import re
++import unicodedata
+ 
+ 
+ def slugify(text: str, max_len: int = 40) -> str:
+@@ -14,7 +15,11 @@ def slugify(text: str, max_len: int = 40) -> str:
+       leaves a trailing '-'.
+     - If nothing is left, the slug is 'n-a'.
+     """
+-    slug = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
++    normalized = unicodedata.normalize("NFKD", text)
++    unaccented = "".join(
++        char for char in normalized if not unicodedata.combining(char)
++    )
++    slug = re.sub(r"[^a-z0-9]+", "-", unaccented.lower()).strip("-")
+     slug = slug[:max_len].rstrip("-")
+     return slug or "n-a"
+ 

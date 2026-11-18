@@ -1,0 +1,124 @@
+diff --git a/src/shoplib/shipping.py b/src/shoplib/shipping.py
+index add6985..5134bdd 100644
+--- a/src/shoplib/shipping.py
++++ b/src/shoplib/shipping.py
+@@ -1,5 +1,7 @@
+ """Shipping costs and parcel splitting. See docs/shipping.md."""
+ 
++from shoplib.errors import ShopError
++
+ # (upper bound in grams, cost in cents)
+ TIERS = [(1000, 500), (2000, 800), (5000, 1200), (20000, 2500)]
+ 
+@@ -16,9 +18,39 @@ def shipping_cost(weight_g: int) -> int:
+ 
+ def split_parcels(items: list[tuple[str, int, int]], max_weight_g: int) -> list[list[str]]:
+     """Split order items into parcels. See docs/shipping.md."""
+-    raise NotImplementedError
++    parcels, _ = _pack(items, max_weight_g)
++    return parcels
++
++
++def _pack(items: list[tuple[str, int, int]], max_weight_g: int) -> tuple[list[list[str]], list[int]]:
++    units = []
++    for sku, weight, qty in items:
++        if weight < 1 or qty < 1 or weight > max_weight_g:
++            raise ShopError("invalid item weight or quantity")
++        units.extend((sku, weight) for _ in range(qty))
++    units.sort(key=lambda unit: (-unit[1], unit[0]))
++
++    parcels: list[list[str]] = []
++    weights: list[int] = []
++    for sku, weight in units:
++        for index, total in enumerate(weights):
++            if total + weight <= max_weight_g:
++                parcels[index].append(sku)
++                weights[index] += weight
++                break
++        else:
++            parcels.append([sku])
++            weights.append(weight)
++    return parcels, weights
+ 
+ 
+ def shipment_cost(items: list[tuple[str, int, int]], max_weight_g: int) -> int:
+     """Total shipping cost of an order. See docs/shipping.md."""
+-    raise NotImplementedError
++    parcels = split_parcels(items, max_weight_g)
++    if not parcels:
++        return 0
++    _, weights = _pack(items, max_weight_g)
++    try:
++        return sum(shipping_cost(weight) for weight in weights)
++    except ValueError as exc:
++        raise ShopError(str(exc)) from exc
+diff --git a/tests/test_shipping.py b/tests/test_shipping.py
+index aad7f05..645b9c9 100644
+--- a/tests/test_shipping.py
++++ b/tests/test_shipping.py
+@@ -1,6 +1,7 @@
+ import pytest
+ 
+-from shoplib.shipping import shipping_cost
++from shoplib.errors import ShopError
++from shoplib.shipping import shipping_cost, shipment_cost, split_parcels
+ 
+ 
+ def test_tiers():
+@@ -15,3 +16,56 @@ def test_invalid_weight():
+         shipping_cost(0)
+     with pytest.raises(ValueError):
+         shipping_cost(25000)
++
++
++def test_split_first_fit_decreasing_and_equal_weight_order():
++    items = [("z", 4, 1), ("b", 6, 1), ("a", 6, 1), ("c", 4, 1), ("d", 2, 2)]
++    assert split_parcels(items, 10) == [["a", "c"], ["b", "z"], ["d", "d"]]
++
++
++def test_split_uses_first_open_parcel_with_room():
++    assert split_parcels([("a", 7, 1), ("b", 6, 1), ("c", 3, 1)], 10) == [
++        ["a", "c"], ["b"]
++    ]
++
++
++@pytest.mark.parametrize("items, limit", [
++    ([("a", 0, 1)], 10),
++    ([("a", -1, 1)], 10),
++    ([("a", 1, 0)], 10),
++    ([("a", 1, -1)], 10),
++    ([("a", 11, 1)], 10),
++    ([("a", 1, 1)], 0),
++])
++def test_split_invalid_items(items, limit):
++    with pytest.raises(ShopError):
++        split_parcels(items, limit)
++    with pytest.raises(ShopError):
++        shipment_cost(items, limit)
++
++
++def test_empty_shipment():
++    assert split_parcels([], 0) == []
++    assert shipment_cost([], 0) == 0
++
++
++def test_shipment_cost_tracks_weights_for_repeated_skus(monkeypatch):
++    weights = []
++    def cost(weight):
++        weights.append(weight)
++        return weight
++
++    monkeypatch.setattr("shoplib.shipping.shipping_cost", cost)
++    items = [("x", 9, 1), ("a", 6, 1), ("x", 4, 1), ("b", 1, 1)]
++    assert split_parcels(items, 10) == [["x", "b"], ["a", "x"]]
++    assert shipment_cost(items, 10) == 20
++    assert weights == [10, 10]
++
++
++def test_shipment_cost_sums_parcel_costs():
++    assert shipment_cost([("a", 1200, 2), ("b", 300, 1)], 2000) == 1600
++
++
++def test_shipment_cost_rejects_parcels_outside_shipping_tiers():
++    with pytest.raises(ShopError):
++        shipment_cost([("a", 20001, 1)], 20001)

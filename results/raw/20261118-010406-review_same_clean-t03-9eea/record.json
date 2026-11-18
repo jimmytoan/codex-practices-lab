@@ -1,0 +1,128 @@
+{
+  "run_id": "20261118-010406-review_same_clean-t03-9eea",
+  "ts": "2026-11-17T17:04:51+00:00",
+  "tag": "full-terra",
+  "condition": "review_same_clean",
+  "task": "t03-inventory-release",
+  "model": "gpt-6.1-terra",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "review_same",
+  "variant": "clean",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 16.1,
+      "usage": {
+        "input_tokens": 60226,
+        "cached_input_tokens": 44885,
+        "cache_write_input_tokens": 15329,
+        "output_tokens": 481,
+        "reasoning_output_tokens": 34
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    },
+    {
+      "status": "ok",
+      "wall_s": 28.1,
+      "usage": {
+        "input_tokens": 148869,
+        "cached_input_tokens": 114022,
+        "cache_write_input_tokens": 34820,
+        "output_tokens": 1778,
+        "reasoning_output_tokens": 407
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 209095,
+    "cached_input_tokens": 158907,
+    "cache_write_input_tokens": 50149,
+    "output_tokens": 2259,
+    "reasoning_output_tokens": 441
+  },
+  "cost_usd": 0.14465,
+  "cost_usd_low": 0.08197,
+  "wall_s": 44.2,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_qty_must_be_positive[-1]",
+      "test_qty_must_be_positive[0]",
+      "test_release_all_then_reserve_again",
+      "test_release_more_than_reserved_changes_nothing",
+      "test_release_part",
+      "test_unknown_or_unreserved_sku"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "27 passed in 0.01s"
+    ]
+  },
+  "rule_followed": true,
+  "changed_files": [
+    "src/shoplib/inventory.py",
+    "tests/test_inventory.py"
+  ],
+  "out_of_scope": [],
+  "commands": 13,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6.1-terra",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      },
+      {
+        "model": "gpt-6.1-terra",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "applied_exactly": true,
+  "before_review": {
+    "passed": [
+      "test_qty_must_be_positive[-1]",
+      "test_qty_must_be_positive[0]",
+      "test_release_all_then_reserve_again",
+      "test_release_more_than_reserved_changes_nothing",
+      "test_release_part",
+      "test_unknown_or_unreserved_sku"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "findings": [],
+  "bug_signatures": {
+    "checks-on-hand": [
+      "test_release_more_than_reserved_changes_nothing",
+      "test_unknown_or_unreserved_sku"
+    ],
+    "accepts-zero": [
+      "test_qty_must_be_positive[0]"
+    ]
+  },
+  "bugs_caught": [
+    "accepts-zero",
+    "checks-on-hand"
+  ],
+  "regressions": []
+}

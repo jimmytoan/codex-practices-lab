@@ -1,0 +1,90 @@
+{
+  "run_id": "20261118-055759-effort_low-t13-447b",
+  "ts": "2026-11-17T21:58:36+00:00",
+  "tag": "full-luna",
+  "condition": "effort_low",
+  "task": "t13-fifo-costing",
+  "model": "gpt-6-luna",
+  "effort": "low",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "direct",
+  "variant": "",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 36.1,
+      "usage": {
+        "input_tokens": 152410,
+        "cached_input_tokens": 133084,
+        "cache_write_input_tokens": 19299,
+        "output_tokens": 3155,
+        "reasoning_output_tokens": 431
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 152410,
+    "cached_input_tokens": 133084,
+    "cache_write_input_tokens": 19299,
+    "output_tokens": 3155,
+    "reasoning_output_tokens": 431
+  },
+  "cost_usd": 0.00774,
+  "cost_usd_low": 0.00532,
+  "wall_s": 36.1,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_bad_events[event0]",
+      "test_bad_events[event1]",
+      "test_bad_events[event2]",
+      "test_bad_events[event3]",
+      "test_cannot_oversell",
+      "test_events_not_modified",
+      "test_oldest_lots_first",
+      "test_receive_only",
+      "test_return_at_average_cost_half_up",
+      "test_return_is_against_most_recent_sale_only",
+      "test_return_without_sale",
+      "test_returned_units_are_sold_last",
+      "test_several_returns_against_one_sale",
+      "test_skus_are_independent",
+      "test_zero_cost_is_allowed"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "31 passed in 0.03s"
+    ]
+  },
+  "rule_followed": null,
+  "changed_files": [
+    "src/shoplib/costing.py",
+    "tests/test_costing.py"
+  ],
+  "out_of_scope": [],
+  "commands": 4,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6-luna",
+        "effort": "low",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  }
+}

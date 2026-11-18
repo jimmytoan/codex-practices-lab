@@ -1,0 +1,175 @@
+diff --git a/src/shoplib/storedays.py b/src/shoplib/storedays.py
+index c46116f..fad5305 100644
+--- a/src/shoplib/storedays.py
++++ b/src/shoplib/storedays.py
+@@ -1,6 +1,55 @@
+ """Revenue per store day. See docs/store-days.md."""
+ 
++from datetime import date, datetime, timedelta
++import re
++
++from .errors import ShopError
++
++
++_ZONE_SUFFIX = re.compile(r"(?:Z|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])$")
++
+ 
+ def daily_revenue(sales: list[dict], utc_offset_hours: int = 8, day_starts_hour: int = 4) -> list[tuple[str, int]]:
+     """Revenue per store day. See docs/store-days.md."""
+-    raise NotImplementedError
++    if type(utc_offset_hours) is not int:
++        raise ShopError("UTC offset must be an integer number of hours")
++    if type(day_starts_hour) is not int or not 0 <= day_starts_hour <= 23:
++        raise ShopError("day start must be an hour from 0 to 23")
++    try:
++        sales_iter = iter(sales)
++    except TypeError as exc:
++        raise ShopError("sales must be iterable") from exc
++
++    totals: dict[date, int] = {}
++    for sale in sales_iter:
++        if not isinstance(sale, dict) or "at" not in sale or "cents" not in sale:
++            raise ShopError("each sale must have a timestamp and cents")
++        timestamp, cents = sale["at"], sale["cents"]
++        if not isinstance(timestamp, str) or not _ZONE_SUFFIX.search(timestamp):
++            raise ShopError("timestamp must have a time zone")
++        if type(cents) is not int:
++            raise ShopError("cents must be an integer")
++
++        try:
++            instant = datetime.fromisoformat(timestamp)
++            offset = instant.utcoffset()
++            if offset is None:
++                raise ShopError("timestamp must have a time zone")
++            # Shifting the local clock back by the opening hour puts the store
++            # day boundary at midnight, so its date is the store day's name.
++            store_day = (
++                instant.replace(tzinfo=None)
++                + (timedelta(hours=utc_offset_hours - day_starts_hour) - offset)
++            ).date()
++        except (ValueError, OverflowError) as exc:
++            raise ShopError("invalid timestamp or store day") from exc
++        totals[store_day] = totals.get(store_day, 0) + cents
++
++    if not totals:
++        return []
++    first = min(totals).toordinal()
++    last = max(totals).toordinal()
++    return [
++        (day.isoformat(), totals.get(day, 0))
++        for day in (date.fromordinal(ordinal) for ordinal in range(first, last + 1))
++    ]
+diff --git a/tests/test_storedays.py b/tests/test_storedays.py
+new file mode 100644
+index 0000000..4148a61
+--- /dev/null
++++ b/tests/test_storedays.py
+@@ -0,0 +1,108 @@
++import pytest
++
++from shoplib.errors import ShopError
++from shoplib.storedays import daily_revenue
++
++
++def test_default_boundary_including_exact_start():
++    sales = [
++        {"at": "2026-11-18T02:30:00+08:00", "cents": 100},
++        {"at": "2026-11-18T03:59:59.999999+08:00", "cents": 200},
++        {"at": "2026-11-18T04:00:00+08:00", "cents": 400},
++        {"at": "2026-11-19T03:59:59+08:00", "cents": 800},
++        {"at": "2026-11-19T04:00:00+08:00", "cents": 1600},
++    ]
++    assert daily_revenue(sales) == [
++        ("2026-11-17", 300),
++        ("2026-11-18", 1200),
++        ("2026-11-19", 1600),
++    ]
++
++
++def test_z_positive_and_negative_time_zones_represent_same_instant():
++    sales = [
++        {"at": "2026-11-17T20:00:00Z", "cents": 100},
++        {"at": "2026-11-18T01:30:00+05:30", "cents": 200},
++        {"at": "2026-11-17T13:00:00-07:00", "cents": -50},
++    ]
++    assert daily_revenue(sales) == [("2026-11-18", 250)]
++
++
++def test_custom_offset_and_boundary_across_year():
++    sales = [
++        {"at": "2027-01-01T08:59:59Z", "cents": 20},
++        {"at": "2027-01-01T09:00:00Z", "cents": 30},
++    ]
++    assert daily_revenue(sales, utc_offset_hours=-5, day_starts_hour=4) == [
++        ("2026-12-31", 20),
++        ("2027-01-01", 30),
++    ]
++    assert daily_revenue(sales, utc_offset_hours=-5, day_starts_hour=0) == [
++        ("2027-01-01", 50)
++    ]
++
++
++def test_gaps_leap_day_refunds_and_input_order():
++    sales = [
++        {"at": "2024-03-02T04:00:00+08:00", "cents": -200},
++        {"at": "2024-02-28T04:00:00+08:00", "cents": 500},
++        {"at": "2024-02-28T05:00:00+08:00", "cents": -500},
++    ]
++    assert daily_revenue(sales) == [
++        ("2024-02-28", 0),
++        ("2024-02-29", 0),
++        ("2024-03-01", 0),
++        ("2024-03-02", -200),
++    ]
++
++
++def test_empty_and_last_representable_date():
++    assert daily_revenue([]) == []
++    assert daily_revenue(
++        [{"at": "9999-12-31T12:00:00Z", "cents": 1}],
++        utc_offset_hours=0,
++        day_starts_hour=0,
++    ) == [("9999-12-31", 1)]
++
++
++@pytest.mark.parametrize(
++    "timestamp",
++    [
++        "2026-11-18T02:30:00",
++        "2026-11-18",
++        "2026-11-18T02:30:00+0800",
++        "2026-11-18T02:30:00+08:60",
++        "2026-11-18T02:30:00+24:00",
++        "2026-02-30T02:30:00Z",
++        "not a timestampZ",
++        None,
++    ],
++)
++def test_invalid_or_unzoned_timestamp_raises_shop_error(timestamp):
++    with pytest.raises(ShopError):
++        daily_revenue([{"at": timestamp, "cents": 100}])
++
++
++@pytest.mark.parametrize(
++    "sales, options",
++    [
++        (None, {}),
++        ([{}], {}),
++        ([{"at": "2026-11-18T04:00:00Z"}], {}),
++        ([{"at": "2026-11-18T04:00:00Z", "cents": 1.5}], {}),
++        ([], {"utc_offset_hours": 1.5}),
++        ([], {"day_starts_hour": -1}),
++        ([], {"day_starts_hour": 24}),
++    ],
++)
++def test_invalid_arguments_raise_shop_error(sales, options):
++    with pytest.raises(ShopError):
++        daily_revenue(sales, **options)
++
++
++def test_conversion_does_not_overflow_when_zone_and_store_offsets_cancel():
++    assert daily_revenue(
++        [{"at": "9999-12-31T23:00:00+08:00", "cents": 1}],
++        utc_offset_hours=8,
++        day_starts_hour=0,
++    ) == [("9999-12-31", 1)]

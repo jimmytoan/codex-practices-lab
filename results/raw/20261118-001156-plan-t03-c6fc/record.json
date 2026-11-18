@@ -1,0 +1,101 @@
+{
+  "run_id": "20261118-001156-plan-t03-c6fc",
+  "ts": "2026-11-17T16:12:28+00:00",
+  "tag": "full-terra",
+  "condition": "plan",
+  "task": "t03-inventory-release",
+  "model": "gpt-6.1-terra",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "plan",
+  "variant": "",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 10.0,
+      "usage": {
+        "input_tokens": 29135,
+        "cached_input_tokens": 14150,
+        "cache_write_input_tokens": 14979,
+        "output_tokens": 277,
+        "reasoning_output_tokens": 47
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    },
+    {
+      "status": "ok",
+      "wall_s": 20.1,
+      "usage": {
+        "input_tokens": 94492,
+        "cached_input_tokens": 77524,
+        "cache_write_input_tokens": 16950,
+        "output_tokens": 1218,
+        "reasoning_output_tokens": 94
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 123627,
+    "cached_input_tokens": 91674,
+    "cache_write_input_tokens": 31929,
+    "output_tokens": 1495,
+    "reasoning_output_tokens": 141
+  },
+  "cost_usd": 0.09191,
+  "cost_usd_low": 0.05199,
+  "wall_s": 30.1,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_qty_must_be_positive[-1]",
+      "test_qty_must_be_positive[0]",
+      "test_release_all_then_reserve_again",
+      "test_release_more_than_reserved_changes_nothing",
+      "test_release_part",
+      "test_unknown_or_unreserved_sku"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "27 passed in 0.01s"
+    ]
+  },
+  "rule_followed": true,
+  "changed_files": [
+    "src/shoplib/inventory.py",
+    "tests/test_inventory.py"
+  ],
+  "out_of_scope": [],
+  "commands": 9,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6.1-terra",
+        "effort": "medium",
+        "sandbox": "read-only"
+      },
+      {
+        "model": "gpt-6.1-terra",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "plan_text": "1. Implement `release` with validation before changing reserved stock, raising `ShopError` for invalid quantities.\n2. Add tests for partial and full releases, all error cases, and unchanged stock after errors.\n3. Run `python -m pytest -q`.",
+  "edits_during_plan": []
+}

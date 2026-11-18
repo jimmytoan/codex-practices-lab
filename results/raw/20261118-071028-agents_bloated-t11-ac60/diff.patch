@@ -1,0 +1,164 @@
+diff --git a/src/shoplib/invoice.py b/src/shoplib/invoice.py
+index 5d1398c..ef0a749 100644
+--- a/src/shoplib/invoice.py
++++ b/src/shoplib/invoice.py
+@@ -1,5 +1,8 @@
+ """Invoices: coupon allocation and tax. See docs/invoicing.md."""
+ 
++from shoplib.errors import ShopError
++from shoplib.money import percent_of
++
+ # Tax rates in percent, by region and product category.
+ TAX_RATES = {
+     "DE": {"standard": 19, "food": 7, "books": 7},
+@@ -10,4 +13,61 @@ TAX_RATES = {
+ 
+ def build_invoice(lines, coupon_cents: int, shipping_cents: int, region: str) -> dict:
+     """Build an invoice for an order. See docs/invoicing.md."""
+-    raise NotImplementedError
++    if region not in TAX_RATES:
++        raise ShopError(f"unknown region: {region}")
++    if not lines:
++        raise ShopError("lines must not be empty")
++    if coupon_cents < 0:
++        raise ShopError("coupon must not be negative")
++    if shipping_cents < 0:
++        raise ShopError("shipping must not be negative")
++
++    rates = TAX_RATES[region]
++    gross_amounts = []
++    line_rates = []
++    for sku, unit_price_cents, qty, category in lines:
++        if category not in rates:
++            raise ShopError(f"unknown category: {category}")
++        if qty < 1:
++            raise ShopError("quantity must be at least 1")
++        if unit_price_cents < 0:
++            raise ShopError("price must not be negative")
++        gross_amounts.append(unit_price_cents * qty)
++        line_rates.append(rates[category])
++
++    total_gross = sum(gross_amounts)
++    applied_coupon = min(coupon_cents, total_gross)
++    discounts = [0] * len(gross_amounts)
++    if total_gross:
++        remainders = []
++        for index, gross in enumerate(gross_amounts):
++            discounts[index], remainder = divmod(applied_coupon * gross, total_gross)
++            remainders.append(remainder)
++
++        cents_left = applied_coupon - sum(discounts)
++        for index in sorted(range(len(gross_amounts)), key=lambda i: (-remainders[i], i))[:cents_left]:
++            discounts[index] += 1
++
++    invoice_lines = []
++    for (sku, _, _, _), gross, discount, rate in zip(lines, gross_amounts, discounts, line_rates):
++        net = gross - discount
++        invoice_lines.append({
++            "sku": sku,
++            "gross_cents": gross,
++            "discount_cents": discount,
++            "net_cents": net,
++            "tax_cents": percent_of(net, rate),
++        })
++
++    shipping_tax = percent_of(shipping_cents, rates["standard"]) if any(rate > 0 for rate in line_rates) else 0
++    total = (
++        sum(line["net_cents"] + line["tax_cents"] for line in invoice_lines)
++        + shipping_cents
++        + shipping_tax
++    )
++    return {
++        "lines": invoice_lines,
++        "shipping_cents": shipping_cents,
++        "shipping_tax_cents": shipping_tax,
++        "total_cents": total,
++    }
+diff --git a/tests/test_invoice.py b/tests/test_invoice.py
+new file mode 100644
+index 0000000..e506f61
+--- /dev/null
++++ b/tests/test_invoice.py
+@@ -0,0 +1,82 @@
++import pytest
++
++from shoplib.errors import ShopError
++from shoplib.invoice import build_invoice
++
++
++def test_build_invoice_calculates_gross_net_line_tax_and_shipping_tax():
++    invoice = build_invoice(
++        [("tea", 199, 2, "food"), ("book", 500, 1, "books")],
++        coupon_cents=99,
++        shipping_cents=250,
++        region="DE",
++    )
++
++    assert invoice == {
++        "lines": [
++            {"sku": "tea", "gross_cents": 398, "discount_cents": 44, "net_cents": 354, "tax_cents": 25},
++            {"sku": "book", "gross_cents": 500, "discount_cents": 55, "net_cents": 445, "tax_cents": 31},
++        ],
++        "shipping_cents": 250,
++        "shipping_tax_cents": 48,
++        "total_cents": 1153,
++    }
++
++
++def test_coupon_is_capped_at_gross_and_zero_gross_has_no_discount():
++    capped = build_invoice([("free", 5, 1, "food")], 10, 0, "OR")
++    zero_gross = build_invoice([("free", 0, 1, "food"), ("also-free", 0, 3, "books")], 10, 0, "DE")
++
++    assert capped["lines"][0]["discount_cents"] == 5
++    assert zero_gross["lines"] == [
++        {"sku": "free", "gross_cents": 0, "discount_cents": 0, "net_cents": 0, "tax_cents": 0},
++        {"sku": "also-free", "gross_cents": 0, "discount_cents": 0, "net_cents": 0, "tax_cents": 0},
++    ]
++
++
++def test_coupon_uses_largest_remainder_and_breaks_ties_by_input_order():
++    invoice = build_invoice(
++        [("first", 1, 1, "books"), ("second", 1, 1, "books"), ("third", 1, 1, "books")],
++        2,
++        0,
++        "OR",
++    )
++
++    assert [line["discount_cents"] for line in invoice["lines"]] == [1, 1, 0]
++
++
++def test_coupon_split_ignores_zero_gross_lines():
++    invoice = build_invoice([("free", 0, 1, "food"), ("paid", 7, 1, "books")], 3, 0, "OR")
++
++    assert [line["discount_cents"] for line in invoice["lines"]] == [0, 3]
++
++
++def test_line_tax_is_rounded_per_line_and_zero_rate_order_does_not_tax_shipping():
++    separate_lines = build_invoice([("one", 8, 1, "food"), ("two", 8, 1, "food")], 0, 0, "DE")
++    zero_tax = build_invoice([("book", 100, 1, "books")], 0, 101, "SG")
++
++    assert [line["tax_cents"] for line in separate_lines["lines"]] == [1, 1]
++    assert zero_tax["shipping_tax_cents"] == 0
++    assert zero_tax["total_cents"] == 201
++
++
++@pytest.mark.parametrize(
++    "lines,coupon,shipping,region",
++    [
++        ([("x", 1, 1, "food")], 0, 0, "XX"),
++        ([("x", 1, 1, "toys")], 0, 0, "DE"),
++        ([], 0, 0, "DE"),
++        ([("x", 1, 0, "food")], 0, 0, "DE"),
++        ([("x", -1, 1, "food")], 0, 0, "DE"),
++        ([("x", 1, 1, "food")], -1, 0, "DE"),
++        ([("x", 1, 1, "food")], 0, -1, "DE"),
++    ],
++)
++def test_invalid_invoice_arguments_raise_value_error(lines, coupon, shipping, region):
++    with pytest.raises(ValueError):
++        build_invoice(lines, coupon, shipping, region)
++
++
++def test_invalid_invoice_arguments_use_shop_error():
++    with pytest.raises(ShopError):
++        build_invoice([], 0, 0, "DE")

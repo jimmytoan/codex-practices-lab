@@ -1,0 +1,114 @@
+diff --git a/src/shoplib/textutil.py b/src/shoplib/textutil.py
+index 061dc23..9771d57 100644
+--- a/src/shoplib/textutil.py
++++ b/src/shoplib/textutil.py
+@@ -1,6 +1,9 @@
+ """Text helpers for URLs and listings."""
+ 
+ import re
++import unicodedata
++
++from shoplib.errors import ShopError
+ 
+ 
+ def slugify(text: str, max_len: int = 40) -> str:
+@@ -13,10 +16,31 @@ def slugify(text: str, max_len: int = 40) -> str:
+     - At most `max_len` characters, cut after the other steps; a cut never
+       leaves a trailing '-'.
+     - If nothing is left, the slug is 'n-a'.
++    - `max_len` must be positive, and at least 3 if the fallback is needed.
+     """
+-    slug = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
++    if not isinstance(text, str):
++        raise ShopError("text must be a string")
++    if not isinstance(max_len, int) or isinstance(max_len, bool) or max_len < 1:
++        raise ShopError("max_len must be a positive integer")
++
++    normalized = unicodedata.normalize("NFD", text.lower())
++    characters = []
++    latin_base = False
++    for char in normalized:
++        if unicodedata.category(char).startswith("M"):
++            if not (latin_base and unicodedata.combining(char)):
++                characters.append(char)
++        else:
++            latin_base = "a" <= char <= "z"
++            characters.append(char)
++
++    slug = re.sub(r"[^a-z0-9]+", "-", "".join(characters)).strip("-")
+     slug = slug[:max_len].rstrip("-")
+-    return slug or "n-a"
++    if not slug:
++        if max_len < 3:
++            raise ShopError("max_len must be at least 3 for an empty slug")
++        return "n-a"
++    return slug
+ 
+ 
+ def truncate(text: str, max_len: int) -> str:
+diff --git a/tests/test_textutil.py b/tests/test_textutil.py
+index 4c83bb9..44b4527 100644
+--- a/tests/test_textutil.py
++++ b/tests/test_textutil.py
+@@ -1,9 +1,61 @@
++import pytest
++
++from shoplib.errors import ShopError
+ from shoplib.textutil import slugify, truncate
+ 
+ 
+ def test_slugify_basic():
+     assert slugify("Blue  Mug (Large)") == "blue-mug-large"
+     assert slugify("!!!") == "n-a"
++    assert slugify("a" * 41) == "a" * 40
++
++
++@pytest.mark.parametrize(
++    ("text", "expected"),
++    [
++        ("Crème Brûlée", "creme-brulee"),
++        ("CAFE\u0301 Ångström", "cafe-angstrom"),
++        ("Việt Nam", "viet-nam"),
++        ("  Déjà!!! vu / 42  ", "deja-vu-42"),
++        ("one Ελληνικά two", "one-two"),
++        ("a\ufe0fb", "a-b"),
++        ("\u0301!!!", "n-a"),
++    ],
++)
++def test_slugify_normalization_and_separators(text, expected):
++    assert slugify(text) == expected
++
++
++@pytest.mark.parametrize(
++    ("text", "max_len", "expected"),
++    [
++        ("Crème Brûlée", 8, "creme-br"),
++        ("Crème Brûlée", 6, "creme"),
++        ("Crème", 1, "c"),
++        ("Crème", 2, "cr"),
++        ("!!!", 3, "n-a"),
++        ("a" * 41, 40, "a" * 40),
++    ],
++)
++def test_slugify_max_len(text, max_len, expected):
++    assert slugify(text, max_len) == expected
++
++
++@pytest.mark.parametrize("max_len", [0, -1, 1.5, True])
++def test_slugify_invalid_max_len(max_len):
++    with pytest.raises(ShopError):
++        slugify("name", max_len)
++
++
++def test_slugify_invalid_text():
++    with pytest.raises(ShopError):
++        slugify(None)
++
++
++@pytest.mark.parametrize("max_len", [1, 2])
++def test_slugify_fallback_requires_room(max_len):
++    with pytest.raises(ShopError):
++        slugify("!!!", max_len)
+ 
+ 
+ def test_truncate():

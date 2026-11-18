@@ -1,0 +1,69 @@
+diff --git a/src/shoplib/reports.py b/src/shoplib/reports.py
+index d024fdc..da02d8e 100644
+--- a/src/shoplib/reports.py
++++ b/src/shoplib/reports.py
+@@ -23,5 +23,12 @@ def to_csv(rows: list[dict]) -> str:
+     """Render summary rows as CSV, following docs/CONVENTIONS.md."""
+     lines = [",".join(COLUMNS)]
+     for row in rows:
+-        lines.append(",".join(str(row[col]) for col in COLUMNS))
++        lines.append(",".join(_csv_field(row[col]) for col in COLUMNS))
+     return "\n".join(lines) + "\n"
++
++
++def _csv_field(value: object) -> str:
++    field = str(value)
++    if any(char in field for char in ',"\r\n'):
++        return '"' + field.replace('"', '""') + '"'
++    return field
+diff --git a/tests/test_reports.py b/tests/test_reports.py
+index a578302..1ea3ee6 100644
+--- a/tests/test_reports.py
++++ b/tests/test_reports.py
+@@ -1,3 +1,8 @@
++import csv
++import io
++
++import pytest
++
+ from shoplib.reports import sales_summary, to_csv
+ 
+ SALES = [
+@@ -16,3 +21,37 @@ def test_summary():
+ 
+ def test_csv():
+     assert to_csv(sales_summary(SALES)) == "sku,name,units,revenue_cents\nA,Mug,3,1350\nB,Bowl,1,900\n"
++
++
++def test_csv_empty_report_has_header():
++    assert to_csv([]) == "sku,name,units,revenue_cents\n"
++
++
++@pytest.mark.parametrize("column", ["sku", "name", "units", "revenue_cents"])
++@pytest.mark.parametrize(
++    ("value", "encoded"),
++    [
++        ("", ""),
++        ("plain text\t", "plain text\t"),
++        ("comma,here", '"comma,here"'),
++        ('a "quote"', '"a ""quote"""'),
++        ("line\nbreak", '"line\nbreak"'),
++        ("line\rbreak", '"line\rbreak"'),
++        ("line\r\nbreak", '"line\r\nbreak"'),
++        ('comma, "quote"\nline', '"comma, ""quote""\nline"'),
++        ("null\0byte", "null\0byte"),
++    ],
++)
++def test_csv_escapes_each_field(column, value, encoded):
++    columns = ["sku", "name", "units", "revenue_cents"]
++    row = {"sku": "A", "name": "Mug", "units": 3, "revenue_cents": 1350}
++    row[column] = value
++
++    output = to_csv([row])
++
++    expected_fields = [encoded if col == column else str(row[col]) for col in columns]
++    assert output == ",".join(columns) + "\n" + ",".join(expected_fields) + "\n"
++    assert list(csv.reader(io.StringIO(output, newline=""), strict=True)) == [
++        columns,
++        [str(row[col]) for col in columns],
++    ]

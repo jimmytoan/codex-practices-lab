@@ -1,0 +1,52 @@
+diff --git a/src/shoplib/invoice.py b/src/shoplib/invoice.py
+index 5d1398c..f29f372 100644
+--- a/src/shoplib/invoice.py
++++ b/src/shoplib/invoice.py
+@@ -1,5 +1,7 @@
+ """Invoices: coupon allocation and tax. See docs/invoicing.md."""
+ 
++from .money import percent_of
++
+ # Tax rates in percent, by region and product category.
+ TAX_RATES = {
+     "DE": {"standard": 19, "food": 7, "books": 7},
+@@ -10,4 +12,38 @@ TAX_RATES = {
+ 
+ def build_invoice(lines, coupon_cents: int, shipping_cents: int, region: str) -> dict:
+     """Build an invoice for an order. See docs/invoicing.md."""
+-    raise NotImplementedError
++    if region not in TAX_RATES:
++        raise ValueError(f"unknown region {region!r}")
++    if not lines:
++        raise ValueError("an invoice needs at least one line")
++    if coupon_cents < 0 or shipping_cents < 0:
++        raise ValueError("coupon and shipping must not be negative")
++    rates = TAX_RATES[region]
++    gross = []
++    for sku, price, qty, category in lines:
++        if qty < 1 or price < 0:
++            raise ValueError(f"bad line {sku}")
++        if category not in rates:
++            raise ValueError(f"unknown category {category!r}")
++        gross.append(price * qty)
++    total_gross = sum(gross)
++    coupon = min(coupon_cents, total_gross)
++    if total_gross == 0:
++        alloc = [0] * len(gross)
++    else:
++        alloc = [coupon * g // total_gross for g in gross]
++        rema = [coupon * g % total_gross for g in gross]
++        order = sorted(range(len(gross)), key=lambda i: (-rema[i], -i))
++        for i in order[: coupon - sum(alloc)]:
++            alloc[i] += 1
++    out, total, any_taxed = [], 0, False
++    for (sku, _price, _qty, category), g, d in zip(lines, gross, alloc):
++        rate = rates[category]
++        any_taxed = any_taxed or rate > 0
++        net = g - d
++        tax = percent_of(g, rate)
++        out.append({"sku": sku, "gross_cents": g, "discount_cents": d, "net_cents": net, "tax_cents": tax})
++        total += net + tax
++    shipping_tax = percent_of(shipping_cents, rates["standard"]) if any_taxed else 0
++    return {"lines": out, "shipping_cents": shipping_cents, "shipping_tax_cents": shipping_tax,
++            "total_cents": total + shipping_cents + shipping_tax}

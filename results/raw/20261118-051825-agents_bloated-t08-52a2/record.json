@@ -1,0 +1,83 @@
+{
+  "run_id": "20261118-051825-agents_bloated-t08-52a2",
+  "ts": "2026-11-17T21:18:44+00:00",
+  "tag": "full-luna",
+  "condition": "agents_bloated",
+  "task": "t08-cli-json",
+  "model": "gpt-6-luna",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "bloated",
+  "prompt": "four_part",
+  "mode": "direct",
+  "variant": "",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 18.0,
+      "usage": {
+        "input_tokens": 131879,
+        "cached_input_tokens": 108244,
+        "cache_write_input_tokens": 23617,
+        "output_tokens": 1570,
+        "reasoning_output_tokens": 233
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 131879,
+    "cached_input_tokens": 108244,
+    "cache_write_input_tokens": 23617,
+    "output_tokens": 1570,
+    "reasoning_output_tokens": 233
+  },
+  "cost_usd": 0.00777,
+  "cost_usd_low": 0.00482,
+  "wall_s": 18.0,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_default_is_still_csv",
+      "test_empty_sales_json",
+      "test_explicit_csv",
+      "test_flag_before_file",
+      "test_json_content",
+      "test_json_layout_follows_conventions",
+      "test_unknown_format_is_a_usage_error"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "23 passed in 0.01s"
+    ]
+  },
+  "rule_followed": null,
+  "changed_files": [
+    "docs/cli.md",
+    "src/shoplib/cli.py",
+    "tests/test_cli.py"
+  ],
+  "out_of_scope": [],
+  "commands": 4,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 26668,
+    "agents_loaded_text_tail": "y in comments, not what.\n- Tidy cli: the README section (SHOP-154). Prefer plain data structures over clever classes.\n- Clarify docs: naming (SHOP-755). Delete dead code instead of commenting it out.\n",
+    "turns": [
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  }
+}

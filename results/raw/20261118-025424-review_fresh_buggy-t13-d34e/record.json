@@ -1,0 +1,141 @@
+{
+  "run_id": "20261118-025424-review_fresh_buggy-t13-d34e",
+  "ts": "2026-11-17T18:55:22+00:00",
+  "tag": "full-terra",
+  "condition": "review_fresh_buggy",
+  "task": "t13-fifo-costing",
+  "model": "gpt-6.1-terra",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "review_fresh",
+  "variant": "buggy",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 56.2,
+      "usage": {
+        "input_tokens": 108305,
+        "cached_input_tokens": 87921,
+        "cache_write_input_tokens": 20366,
+        "output_tokens": 3238,
+        "reasoning_output_tokens": 827
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 108305,
+    "cached_input_tokens": 87921,
+    "cache_write_input_tokens": 20366,
+    "output_tokens": 3238,
+    "reasoning_output_tokens": 827
+  },
+  "cost_usd": 0.07152,
+  "cost_usd_low": 0.04606,
+  "wall_s": 56.2,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_bad_events[event0]",
+      "test_bad_events[event1]",
+      "test_bad_events[event2]",
+      "test_bad_events[event3]",
+      "test_cannot_oversell",
+      "test_events_not_modified",
+      "test_oldest_lots_first",
+      "test_receive_only",
+      "test_return_at_average_cost_half_up",
+      "test_return_is_against_most_recent_sale_only",
+      "test_return_without_sale",
+      "test_returned_units_are_sold_last",
+      "test_several_returns_against_one_sale",
+      "test_skus_are_independent",
+      "test_zero_cost_is_allowed"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "38 passed in 0.02s"
+    ]
+  },
+  "rule_followed": null,
+  "changed_files": [
+    "src/shoplib/costing.py",
+    "tests/test_costing.py"
+  ],
+  "out_of_scope": [],
+  "commands": 14,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6.1-terra",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "applied_exactly": true,
+  "before_review": {
+    "passed": [
+      "test_bad_events[event0]",
+      "test_bad_events[event1]",
+      "test_bad_events[event2]",
+      "test_bad_events[event3]",
+      "test_cannot_oversell",
+      "test_events_not_modified",
+      "test_oldest_lots_first",
+      "test_receive_only",
+      "test_return_is_against_most_recent_sale_only",
+      "test_return_without_sale",
+      "test_several_returns_against_one_sale",
+      "test_skus_are_independent",
+      "test_zero_cost_is_allowed"
+    ],
+    "failed": [
+      "test_return_at_average_cost_half_up",
+      "test_returned_units_are_sold_last"
+    ],
+    "error": null,
+    "ok": false
+  },
+  "findings": [
+    {
+      "file": "src/shoplib/costing.py",
+      "description": "Return costs were truncated instead of rounded half up."
+    },
+    {
+      "file": "src/shoplib/costing.py",
+      "description": "Returned lots were placed before existing lots, breaking FIFO order."
+    },
+    {
+      "file": "src/shoplib/costing.py",
+      "description": "Invalid operations raised ValueError instead of ShopError. All 38 tests pass."
+    }
+  ],
+  "bug_signatures": {
+    "return-cost-floored": [
+      "test_return_at_average_cost_half_up"
+    ],
+    "returns-sold-first": [
+      "test_returned_units_are_sold_last"
+    ]
+  },
+  "bugs_caught": [
+    "return-cost-floored",
+    "returns-sold-first"
+  ],
+  "regressions": []
+}

@@ -1,0 +1,99 @@
+{
+  "run_id": "20261118-014834-agents_bloated-t11-1bb8",
+  "ts": "2026-11-17T17:49:29+00:00",
+  "tag": "full-terra",
+  "condition": "agents_bloated",
+  "task": "t11-invoice-tax",
+  "model": "gpt-6.1-terra",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "bloated",
+  "prompt": "four_part",
+  "mode": "direct",
+  "variant": "",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 54.2,
+      "usage": {
+        "input_tokens": 194404,
+        "cached_input_tokens": 167542,
+        "cache_write_input_tokens": 26838,
+        "output_tokens": 3512,
+        "reasoning_output_tokens": 513
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 194404,
+    "cached_input_tokens": 167542,
+    "cache_write_input_tokens": 26838,
+    "output_tokens": 3512,
+    "reasoning_output_tokens": 513
+  },
+  "cost_usd": 0.09306,
+  "cost_usd_low": 0.05951,
+  "wall_s": 54.2,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_coupon_capped_at_gross",
+      "test_discounts_always_add_up[101]",
+      "test_discounts_always_add_up[1234]",
+      "test_discounts_always_add_up[1]",
+      "test_discounts_always_add_up[2]",
+      "test_discounts_always_add_up[3]",
+      "test_discounts_always_add_up[997]",
+      "test_discounts_always_add_up[99]",
+      "test_equal_remainders_go_to_earlier_line",
+      "test_errors[args0]",
+      "test_errors[args1]",
+      "test_errors[args2]",
+      "test_errors[args3]",
+      "test_errors[args4]",
+      "test_errors[args5]",
+      "test_errors[args6]",
+      "test_largest_remainder_goes_to_largest_fraction_not_first_line",
+      "test_no_coupon_de",
+      "test_proportional_coupon",
+      "test_shipping_not_taxed_when_no_line_is_taxed",
+      "test_shipping_taxed_at_standard_rate",
+      "test_tax_half_up",
+      "test_tax_rounded_per_line",
+      "test_zero_gross_with_coupon"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "35 passed in 0.01s"
+    ]
+  },
+  "rule_followed": null,
+  "changed_files": [
+    "src/shoplib/invoice.py",
+    "tests/test_invoice.py"
+  ],
+  "out_of_scope": [],
+  "commands": 9,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 26668,
+    "agents_loaded_text_tail": "y in comments, not what.\n- Tidy cli: the README section (SHOP-154). Prefer plain data structures over clever classes.\n- Clarify docs: naming (SHOP-755). Delete dead code instead of commenting it out.\n",
+    "turns": [
+      {
+        "model": "gpt-6.1-terra",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  }
+}

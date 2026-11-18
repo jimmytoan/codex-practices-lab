@@ -1,0 +1,117 @@
+diff --git a/src/shoplib/discounts.py b/src/shoplib/discounts.py
+index d2804c4..281e89c 100644
+--- a/src/shoplib/discounts.py
++++ b/src/shoplib/discounts.py
+@@ -3,6 +3,7 @@
+ from dataclasses import dataclass
+ from datetime import date
+ 
++from .errors import ShopError
+ from .money import percent_of
+ 
+ 
+@@ -30,4 +31,32 @@ def apply_coupon(subtotal_cents: int, coupon: Coupon) -> int:
+ 
+ def apply_coupons(subtotal_cents: int, coupons: list[Coupon], today: date) -> tuple[int, list[str]]:
+     """Apply several coupons following the rules in docs/discounts.md."""
+-    raise NotImplementedError
++    if subtotal_cents < 0:
++        raise ShopError("subtotal must not be negative")
++
++    eligible = [
++        coupon
++        for coupon in coupons
++        if (coupon.expires is None or today <= coupon.expires)
++        and subtotal_cents >= coupon.min_subtotal_cents
++    ]
++
++    unknown_kinds = [coupon.kind for coupon in eligible if coupon.kind not in ("percent", "fixed")]
++    if unknown_kinds:
++        raise ShopError(f"unknown coupon kind {unknown_kinds[0]!r}")
++
++    percent_coupons = [coupon for coupon in eligible if coupon.kind == "percent"]
++    fixed_coupons = [coupon for coupon in eligible if coupon.kind == "fixed"]
++
++    applied_codes: list[str] = []
++    total = subtotal_cents
++    if percent_coupons:
++        chosen_percent = min(percent_coupons, key=lambda coupon: (-coupon.value, coupon.code))
++        total -= percent_of(subtotal_cents, chosen_percent.value)
++        applied_codes.append(chosen_percent.code)
++
++    for coupon in fixed_coupons:
++        total -= coupon.value
++        applied_codes.append(coupon.code)
++
++    return max(total, 0), sorted(applied_codes)
+diff --git a/tests/test_discounts.py b/tests/test_discounts.py
+index 5b20e73..9bf602b 100644
+--- a/tests/test_discounts.py
++++ b/tests/test_discounts.py
+@@ -1,4 +1,7 @@
++from datetime import date
++
+ from shoplib.discounts import Coupon, apply_coupon
++from shoplib.discounts import apply_coupons
+ 
+ 
+ def test_percent():
+@@ -7,3 +10,58 @@ def test_percent():
+ 
+ def test_fixed_never_negative():
+     assert apply_coupon(300, Coupon("FIVE", "fixed", 500)) == 0
++
++
++def test_apply_coupons_uses_best_percent_and_all_eligible_fixed_coupons():
++    coupons = [
++        Coupon("TEN", "percent", 10),
++        Coupon("FIFTEEN", "percent", 15),
++        Coupon("THREE", "fixed", 300),
++        Coupon("TWO", "fixed", 200),
++    ]
++
++    assert apply_coupons(10_000, coupons, date(2026, 1, 1)) == (8_000, ["FIFTEEN", "THREE", "TWO"])
++
++
++def test_apply_coupons_breaks_percent_ties_by_code_and_rounds_half_up():
++    coupons = [
++        Coupon("ZED", "percent", 1),
++        Coupon("ALPHA", "percent", 1),
++    ]
++
++    assert apply_coupons(50, coupons, date(2026, 1, 1)) == (49, ["ALPHA"])
++
++
++def test_apply_coupons_checks_expiry_and_minimum_against_original_subtotal():
++    today = date(2026, 1, 1)
++    coupons = [
++        Coupon("TODAY", "fixed", 100, expires=today, min_subtotal_cents=1_000),
++        Coupon("EXPIRED", "fixed", 100, expires=date(2025, 12, 31)),
++        Coupon("TOO_HIGH", "fixed", 100, min_subtotal_cents=1_001),
++        Coupon("PERCENT", "percent", 50),
++    ]
++
++    # The 50% discount brings the running total below 1,000, but TODAY was
++    # eligible based on the original subtotal and still applies.
++    assert apply_coupons(1_000, coupons, today) == (400, ["PERCENT", "TODAY"])
++
++
++def test_apply_coupons_floors_total_at_zero_and_sorts_codes():
++    coupons = [Coupon("Z", "fixed", 600), Coupon("A", "fixed", 600)]
++
++    assert apply_coupons(1_000, coupons, date(2026, 1, 1)) == (0, ["A", "Z"])
++
++
++def test_apply_coupons_without_eligible_coupons_returns_original_subtotal():
++    coupons = [Coupon("LATER", "fixed", 100, expires=date(2025, 12, 31))]
++
++    assert apply_coupons(500, coupons, date(2026, 1, 1)) == (500, [])
++
++
++def test_apply_coupons_rejects_negative_subtotal():
++    try:
++        apply_coupons(-1, [], date(2026, 1, 1))
++    except ValueError as exc:
++        assert str(exc) == "subtotal must not be negative"
++    else:
++        raise AssertionError("negative subtotal should be rejected")

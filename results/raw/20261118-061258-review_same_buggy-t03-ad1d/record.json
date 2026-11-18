@@ -1,0 +1,142 @@
+{
+  "run_id": "20261118-061258-review_same_buggy-t03-ad1d",
+  "ts": "2026-11-17T22:13:42+00:00",
+  "tag": "full-luna",
+  "condition": "review_same_buggy",
+  "task": "t03-inventory-release",
+  "model": "gpt-6-luna",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "review_same",
+  "variant": "buggy",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 14.0,
+      "usage": {
+        "input_tokens": 73797,
+        "cached_input_tokens": 58425,
+        "cache_write_input_tokens": 15357,
+        "output_tokens": 897,
+        "reasoning_output_tokens": 293
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    },
+    {
+      "status": "ok",
+      "wall_s": 28.2,
+      "usage": {
+        "input_tokens": 160505,
+        "cached_input_tokens": 125944,
+        "cache_write_input_tokens": 34531,
+        "output_tokens": 3380,
+        "reasoning_output_tokens": 1744
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 234302,
+    "cached_input_tokens": 184369,
+    "cache_write_input_tokens": 49888,
+    "output_tokens": 4277,
+    "reasoning_output_tokens": 2037
+  },
+  "cost_usd": 0.01646,
+  "cost_usd_low": 0.01022,
+  "wall_s": 42.2,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_qty_must_be_positive[-1]",
+      "test_qty_must_be_positive[0]",
+      "test_release_all_then_reserve_again",
+      "test_release_more_than_reserved_changes_nothing",
+      "test_release_part",
+      "test_unknown_or_unreserved_sku"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "26 passed in 0.02s"
+    ]
+  },
+  "rule_followed": true,
+  "changed_files": [
+    "src/shoplib/inventory.py",
+    "tests/test_inventory.py"
+  ],
+  "out_of_scope": [],
+  "commands": 7,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      },
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "applied_exactly": true,
+  "before_review": {
+    "passed": [
+      "test_qty_must_be_positive[-1]",
+      "test_release_all_then_reserve_again",
+      "test_release_part"
+    ],
+    "failed": [
+      "test_qty_must_be_positive[0]",
+      "test_release_more_than_reserved_changes_nothing",
+      "test_unknown_or_unreserved_sku"
+    ],
+    "error": null,
+    "ok": false
+  },
+  "findings": [
+    {
+      "file": "src/shoplib/inventory.py",
+      "description": "`qty < 0` allowed zero despite the positive-quantity requirement. Changed the check to reject `qty <= 0`."
+    },
+    {
+      "file": "src/shoplib/inventory.py",
+      "description": "The release limit was checked against on-hand stock instead of reserved stock. This allowed releasing more than reserved and could raise `KeyError` for a SKU with on-hand but unreserved stock. Changed the check to use reserved stock, so failures leave state unchanged."
+    },
+    {
+      "file": "tests/test_inventory.py",
+      "description": "Added regression coverage for successful release, zero and negative quantities, over-release, and SKUs with no reservation. `python -m pytest -q` passes: 26 passed."
+    }
+  ],
+  "bug_signatures": {
+    "checks-on-hand": [
+      "test_release_more_than_reserved_changes_nothing",
+      "test_unknown_or_unreserved_sku"
+    ],
+    "accepts-zero": [
+      "test_qty_must_be_positive[0]"
+    ]
+  },
+  "bugs_caught": [
+    "accepts-zero",
+    "checks-on-hand"
+  ],
+  "regressions": []
+}

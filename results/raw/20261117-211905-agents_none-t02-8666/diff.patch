@@ -1,0 +1,60 @@
+diff --git a/src/shoplib/cart.py b/src/shoplib/cart.py
+index 9150045..7e24b23 100644
+--- a/src/shoplib/cart.py
++++ b/src/shoplib/cart.py
+@@ -2,6 +2,8 @@
+ 
+ from dataclasses import dataclass
+ 
++from shoplib.money import percent_of
++
+ 
+ @dataclass
+ class Line:
+@@ -38,7 +40,10 @@ class Cart:
+         if sku not in self._lines:
+             raise ValueError(f"{sku} is not in the cart")
+         line = self._lines[sku]
+-        return line.unit_price_cents * line.qty
++        total = line.unit_price_cents * line.qty
++        if line.qty >= 10:
++            total -= percent_of(total, 5)
++        return total
+ 
+     def subtotal(self) -> int:
+         """Sum of all line totals in cents."""
+diff --git a/tests/test_cart.py b/tests/test_cart.py
+index 1a3d0e7..e5b9c1b 100644
+--- a/tests/test_cart.py
++++ b/tests/test_cart.py
+@@ -21,3 +21,30 @@ def test_add_same_sku_merges():
+ def test_bad_qty():
+     with pytest.raises(ValueError):
+         Cart().add("A", 250, 0)
++
++
++@pytest.mark.parametrize(
++    ("qty", "expected"),
++    [(9, 900), (10, 950), (11, 1045)],
++)
++def test_bulk_discount_threshold(qty, expected):
++    cart = Cart()
++    cart.add("A", 100, qty)
++    assert cart.line_total("A") == expected
++
++
++def test_bulk_discount_rounds_half_up_and_applies_to_subtotal():
++    cart = Cart()
++    cart.add("A", 1, 10)  # 5% of 10 cents is half a cent.
++    cart.add("B", 100, 9)
++    assert cart.line_total("A") == 9
++    assert cart.line_total("B") == 900
++    assert cart.subtotal() == 909
++
++
++def test_merged_quantity_qualifies_for_bulk_discount():
++    cart = Cart()
++    cart.add("A", 100, 9)
++    cart.add("A", 100)
++    assert cart.line_total("A") == 950
++    assert cart.subtotal() == 950

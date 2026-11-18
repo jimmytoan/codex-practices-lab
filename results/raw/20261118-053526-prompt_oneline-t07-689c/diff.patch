@@ -1,0 +1,47 @@
+diff --git a/src/shoplib/discounts.py b/src/shoplib/discounts.py
+index d2804c4..0fce9b1 100644
+--- a/src/shoplib/discounts.py
++++ b/src/shoplib/discounts.py
+@@ -3,6 +3,7 @@
+ from dataclasses import dataclass
+ from datetime import date
+ 
++from .errors import ShopError
+ from .money import percent_of
+ 
+ 
+@@ -30,4 +31,33 @@ def apply_coupon(subtotal_cents: int, coupon: Coupon) -> int:
+ 
+ def apply_coupons(subtotal_cents: int, coupons: list[Coupon], today: date) -> tuple[int, list[str]]:
+     """Apply several coupons following the rules in docs/discounts.md."""
+-    raise NotImplementedError
++    if subtotal_cents < 0:
++        raise ShopError("subtotal must not be negative")
++
++    eligible = [
++        coupon
++        for coupon in coupons
++        if (coupon.expires is None or today <= coupon.expires)
++        and subtotal_cents >= coupon.min_subtotal_cents
++    ]
++
++    percent_coupons = [coupon for coupon in eligible if coupon.kind == "percent"]
++    fixed_coupons = [coupon for coupon in eligible if coupon.kind == "fixed"]
++    if len(percent_coupons) + len(fixed_coupons) != len(eligible):
++        unknown = next(
++            coupon for coupon in eligible if coupon.kind not in ("percent", "fixed")
++        )
++        raise ShopError(f"unknown coupon kind {unknown.kind!r}")
++
++    applied = []
++    total = subtotal_cents
++    if percent_coupons:
++        percent_coupon = min(percent_coupons, key=lambda coupon: (-coupon.value, coupon.code))
++        total -= percent_of(subtotal_cents, percent_coupon.value)
++        applied.append(percent_coupon.code)
++
++    for coupon in fixed_coupons:
++        total -= coupon.value
++        applied.append(coupon.code)
++
++    return max(total, 0), sorted(applied)

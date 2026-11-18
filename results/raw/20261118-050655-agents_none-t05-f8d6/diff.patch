@@ -1,0 +1,38 @@
+diff --git a/src/shoplib/reports.py b/src/shoplib/reports.py
+index d024fdc..cf40f41 100644
+--- a/src/shoplib/reports.py
++++ b/src/shoplib/reports.py
+@@ -3,6 +3,13 @@
+ COLUMNS = ["sku", "name", "units", "revenue_cents"]
+ 
+ 
++def _format_csv_field(value: object) -> str:
++    text = str(value)
++    if any(char in text for char in ',"\r\n'):
++        return '"' + text.replace('"', '""') + '"'
++    return text
++
++
+ def sales_summary(sales: list[dict]) -> list[dict]:
+     """One row per SKU, sorted by SKU.
+ 
+@@ -23,5 +30,5 @@ def to_csv(rows: list[dict]) -> str:
+     """Render summary rows as CSV, following docs/CONVENTIONS.md."""
+     lines = [",".join(COLUMNS)]
+     for row in rows:
+-        lines.append(",".join(str(row[col]) for col in COLUMNS))
++        lines.append(",".join(_format_csv_field(row[col]) for col in COLUMNS))
+     return "\n".join(lines) + "\n"
+diff --git a/tests/test_reports.py b/tests/test_reports.py
+index a578302..b83dccc 100644
+--- a/tests/test_reports.py
++++ b/tests/test_reports.py
+@@ -16,3 +16,8 @@ def test_summary():
+ 
+ def test_csv():
+     assert to_csv(sales_summary(SALES)) == "sku,name,units,revenue_cents\nA,Mug,3,1350\nB,Bowl,1,900\n"
++
++
++def test_csv_quotes_fields_that_need_escaping():
++    row = {"sku": 'SKU,"1', "name": "Mug\nSet", "units": 2, "revenue_cents": 900}
++    assert to_csv([row]) == 'sku,name,units,revenue_cents\n"SKU,""1","Mug\nSet",2,900\n'

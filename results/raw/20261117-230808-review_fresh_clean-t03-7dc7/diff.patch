@@ -1,0 +1,75 @@
+diff --git a/src/shoplib/inventory.py b/src/shoplib/inventory.py
+index 69cd1dc..65dfc30 100644
+--- a/src/shoplib/inventory.py
++++ b/src/shoplib/inventory.py
+@@ -1,5 +1,7 @@
+ """Stock levels: on hand, reserved for orders, and available."""
+ 
++from .errors import ShopError
++
+ 
+ class Inventory:
+     def __init__(self):
+@@ -35,7 +37,11 @@ class Inventory:
+         the SKU (including a SKU with nothing reserved) raises ValueError and
+         changes nothing.
+         """
+-        raise NotImplementedError
++        if qty <= 0:
++            raise ShopError("qty must be positive")
++        if qty > self.reserved(sku):
++            raise ShopError(f"only {self.reserved(sku)} of {sku} reserved")
++        self._reserved[sku] -= qty
+ 
+     def ship(self, sku: str, qty: int) -> None:
+         """Ship `qty` reserved units: they leave both reserved and on hand."""
+diff --git a/tests/test_inventory.py b/tests/test_inventory.py
+index 37436c0..72f38bb 100644
+--- a/tests/test_inventory.py
++++ b/tests/test_inventory.py
+@@ -1,5 +1,6 @@
+ import pytest
+ 
++from shoplib.errors import ShopError
+ from shoplib.inventory import Inventory
+ 
+ 
+@@ -18,3 +19,38 @@ def test_cannot_reserve_more_than_available():
+     inv.receive("A", 2)
+     with pytest.raises(ValueError):
+         inv.reserve("A", 3)
++
++
++def test_release_returns_reserved_stock_to_available():
++    inv = Inventory()
++    inv.receive("A", 10)
++    inv.reserve("A", 4)
++    inv.receive("B", 5)
++    inv.reserve("B", 2)
++
++    inv.release("A", 1)
++    assert (inv.on_hand("A"), inv.reserved("A"), inv.available("A")) == (10, 3, 7)
++    assert (inv.on_hand("B"), inv.reserved("B"), inv.available("B")) == (5, 2, 3)
++
++    inv.release("A", 3)
++    assert (inv.on_hand("A"), inv.reserved("A"), inv.available("A")) == (10, 0, 10)
++
++
++@pytest.mark.parametrize("sku, qty", [("A", 0), ("A", -1), ("A", 4), ("B", 1), ("missing", 1)])
++def test_invalid_release_leaves_inventory_unchanged(sku, qty):
++    inv = Inventory()
++    inv.receive("A", 10)
++    inv.reserve("A", 3)
++    inv.receive("B", 5)
++    before = {
++        item: (inv.on_hand(item), inv.reserved(item), inv.available(item))
++        for item in ("A", "B", "missing")
++    }
++
++    with pytest.raises(ShopError):
++        inv.release(sku, qty)
++
++    assert {
++        item: (inv.on_hand(item), inv.reserved(item), inv.available(item))
++        for item in before
++    } == before

@@ -1,0 +1,103 @@
+{
+  "run_id": "20261118-035647-plan-t02-d4b8",
+  "ts": "2026-11-17T19:57:14+00:00",
+  "tag": "full-luna",
+  "condition": "plan",
+  "task": "t02-bulk-discount",
+  "model": "gpt-6-luna",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "plan",
+  "variant": "",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 12.0,
+      "usage": {
+        "input_tokens": 44193,
+        "cached_input_tokens": 28709,
+        "cache_write_input_tokens": 15475,
+        "output_tokens": 569,
+        "reasoning_output_tokens": 117
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    },
+    {
+      "status": "ok",
+      "wall_s": 14.1,
+      "usage": {
+        "input_tokens": 112111,
+        "cached_input_tokens": 94344,
+        "cache_write_input_tokens": 17746,
+        "output_tokens": 1702,
+        "reasoning_output_tokens": 485
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 156304,
+    "cached_input_tokens": 123053,
+    "cache_write_input_tokens": 33221,
+    "output_tokens": 2271,
+    "reasoning_output_tokens": 602
+  },
+  "cost_usd": 0.01067,
+  "cost_usd_low": 0.00652,
+  "wall_s": 26.1,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_discount_at_ten",
+      "test_discount_is_per_line",
+      "test_half_cent_rounds_up_10",
+      "test_half_cent_rounds_up_1990",
+      "test_half_cent_rounds_up_3330",
+      "test_merged_adds_reach_threshold",
+      "test_no_discount_below_ten",
+      "test_totals_are_ints"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "23 passed in 0.03s"
+    ]
+  },
+  "rule_followed": null,
+  "changed_files": [
+    "src/shoplib/cart.py",
+    "tests/test_cart.py"
+  ],
+  "out_of_scope": [],
+  "commands": 6,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "read-only"
+      },
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "plan_text": "1. Update `line_total` to apply a 5% discount when a line\u2019s quantity is at least 10, using `shoplib.money.percent_of` for half-up cent rounding.\n2. Keep `subtotal` summing the discounted line totals.\n3. Add tests for quantities below and at the threshold, including subtotal and merged quantities. No files have been changed.",
+  "edits_during_plan": []
+}

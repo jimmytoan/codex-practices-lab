@@ -1,0 +1,83 @@
+{
+  "run_id": "20261118-065624-agents_none-t05-3337",
+  "ts": "2026-11-17T22:56:43+00:00",
+  "tag": "full-luna",
+  "condition": "agents_none",
+  "task": "t05-csv-quoting",
+  "model": "gpt-6-luna",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "none",
+  "prompt": "four_part",
+  "mode": "direct",
+  "variant": "",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 18.0,
+      "usage": {
+        "input_tokens": 89456,
+        "cached_input_tokens": 73383,
+        "cache_write_input_tokens": 16055,
+        "output_tokens": 1137,
+        "reasoning_output_tokens": 289
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 89456,
+    "cached_input_tokens": 73383,
+    "cache_write_input_tokens": 16055,
+    "output_tokens": 1137,
+    "reasoning_output_tokens": 289
+  },
+  "cost_usd": 0.00532,
+  "cost_usd_low": 0.00331,
+  "wall_s": 18.0,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_comma_is_quoted",
+      "test_empty_rows_still_has_header",
+      "test_newline_in_field",
+      "test_no_carriage_returns",
+      "test_plain_rows_are_unchanged",
+      "test_quote_is_doubled",
+      "test_round_trip",
+      "test_sku_with_comma_is_quoted_too"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "22 passed in 0.01s"
+    ]
+  },
+  "rule_followed": null,
+  "changed_files": [
+    "src/shoplib/reports.py",
+    "tests/test_reports.py"
+  ],
+  "out_of_scope": [],
+  "commands": 4,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 0,
+    "agents_loaded_text_tail": null,
+    "turns": [
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": false
+  }
+}

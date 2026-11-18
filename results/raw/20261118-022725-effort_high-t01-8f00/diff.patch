@@ -1,0 +1,60 @@
+diff --git a/src/shoplib/shipping.py b/src/shoplib/shipping.py
+index add6985..d04fd04 100644
+--- a/src/shoplib/shipping.py
++++ b/src/shoplib/shipping.py
+@@ -1,5 +1,7 @@
+ """Shipping costs and parcel splitting. See docs/shipping.md."""
+ 
++from shoplib.errors import ShopError
++
+ # (upper bound in grams, cost in cents)
+ TIERS = [(1000, 500), (2000, 800), (5000, 1200), (20000, 2500)]
+ 
+@@ -7,11 +9,11 @@ TIERS = [(1000, 500), (2000, 800), (5000, 1200), (20000, 2500)]
+ def shipping_cost(weight_g: int) -> int:
+     """Cost in cents of one parcel of `weight_g` grams. See docs/shipping.md."""
+     if weight_g <= 0:
+-        raise ValueError("weight must be positive")
++        raise ShopError("weight must be positive")
+     for limit, cost in TIERS:
+-        if weight_g < limit:
++        if weight_g <= limit:
+             return cost
+-    raise ValueError("parcel is too heavy")
++    raise ShopError("parcel is too heavy")
+ 
+ 
+ def split_parcels(items: list[tuple[str, int, int]], max_weight_g: int) -> list[list[str]]:
+diff --git a/tests/test_shipping.py b/tests/test_shipping.py
+index aad7f05..3f33899 100644
+--- a/tests/test_shipping.py
++++ b/tests/test_shipping.py
+@@ -1,5 +1,6 @@
+ import pytest
+ 
++from shoplib.errors import ShopError
+ from shoplib.shipping import shipping_cost
+ 
+ 
+@@ -10,8 +11,16 @@ def test_tiers():
+     assert shipping_cost(12000) == 2500
+ 
+ 
+-def test_invalid_weight():
+-    with pytest.raises(ValueError):
+-        shipping_cost(0)
+-    with pytest.raises(ValueError):
+-        shipping_cost(25000)
++@pytest.mark.parametrize(
++    ("weight", "cost"),
++    [(1, 500), (1000, 500), (1001, 800), (2000, 800),
++     (2001, 1200), (5000, 1200), (5001, 2500), (20000, 2500)],
++)
++def test_tier_boundaries(weight, cost):
++    assert shipping_cost(weight) == cost
++
++
++@pytest.mark.parametrize("weight", [-1, 0, 20001, 25000])
++def test_invalid_weight(weight):
++    with pytest.raises(ShopError):
++        shipping_cost(weight)

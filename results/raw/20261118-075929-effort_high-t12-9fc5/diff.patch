@@ -1,0 +1,205 @@
+diff --git a/src/shoplib/search.py b/src/shoplib/search.py
+index 2c1a324..93ef90d 100644
+--- a/src/shoplib/search.py
++++ b/src/shoplib/search.py
+@@ -1,6 +1,9 @@
+ """Product search. See docs/search.md."""
+ 
+ from dataclasses import dataclass, field
++from operator import eq, ge, gt, le, lt
++
++from shoplib.errors import ShopError
+ 
+ 
+ @dataclass
+@@ -13,4 +16,104 @@ class Product:
+ 
+ def search(products: list[Product], query: str) -> list[Product]:
+     """The products that match `query`, in their input order. See docs/search.md."""
+-    raise NotImplementedError
++    terms = [_parse_term(token) for token in _tokenize(query)]
++    return [product for product in products if all(_matches(product, term) for term in terms)]
++
++
++def _tokenize(query: str) -> list[str]:
++    """Split on unquoted whitespace, keeping quotes for the term parser."""
++    tokens: list[str] = []
++    current: list[str] = []
++    quoted = False
++
++    for char in query:
++        if char == '"':
++            quoted = not quoted
++            current.append(char)
++        elif char.isspace() and not quoted:
++            if current:
++                tokens.append("".join(current))
++                current = []
++        else:
++            current.append(char)
++
++    if quoted:
++        raise ShopError("unclosed quote")
++    if current:
++        tokens.append("".join(current))
++    return tokens
++
++
++def _parse_term(token: str) -> tuple[bool, str, object]:
++    """Return (negated, kind, value) for one token."""
++    negated = token.startswith("-")
++    if negated:
++        token = token[1:]
++        if not token:
++            raise ShopError("a negation needs a term")
++
++    # Quotes around a whole term make it a name phrase, even if its contents
++    # look like a field or a price comparison.
++    if _is_whole_quoted(token):
++        return negated, "name", token[1:-1]
++
++    colon = _first_unquoted_colon(token)
++    if colon != -1:
++        field_name = token[:colon]
++        value = _unquote(token[colon + 1 :])
++        if field_name not in {"sku", "name", "tag"}:
++            raise ShopError(f"unknown search field {field_name!r}")
++        if not value:
++            raise ShopError("search field value must not be empty")
++        if field_name in {"sku", "tag"} and value.endswith("*"):
++            return negated, f"{field_name}_prefix", value[:-1]
++        return negated, field_name, value
++
++    for operator_text, operator in (("<=", le), (">=", ge), ("<", lt), (">", gt), ("=", eq)):
++        prefix = f"price{operator_text}"
++        if token.startswith(prefix):
++            cents_text = token[len(prefix) :]
++            if not cents_text or any(char not in "0123456789" for char in cents_text):
++                raise ShopError("price comparison requires a whole number of cents")
++            return negated, "price", (operator, int(cents_text))
++
++    return negated, "name", _unquote(token)
++
++
++def _is_whole_quoted(token: str) -> bool:
++    if not token.startswith('"'):
++        return False
++    return token.find('"', 1) == len(token) - 1
++
++
++def _first_unquoted_colon(token: str) -> int:
++    quoted = False
++    for index, char in enumerate(token):
++        if char == '"':
++            quoted = not quoted
++        elif char == ":" and not quoted:
++            return index
++    return -1
++
++
++def _unquote(value: str) -> str:
++    """Remove quote delimiters after tokenization has checked their balance."""
++    return value.replace('"', "")
++
++
++def _matches(product: Product, term: tuple[bool, str, object]) -> bool:
++    negated, kind, value = term
++    if kind == "name":
++        matched = str(value).casefold() in product.name.casefold()
++    elif kind == "sku":
++        matched = product.sku.casefold() == str(value).casefold()
++    elif kind == "sku_prefix":
++        matched = product.sku.casefold().startswith(str(value).casefold())
++    elif kind == "tag":
++        matched = any(tag.casefold() == str(value).casefold() for tag in product.tags)
++    elif kind == "tag_prefix":
++        matched = any(tag.casefold().startswith(str(value).casefold()) for tag in product.tags)
++    else:
++        operator, cents = value
++        matched = operator(product.price_cents, cents)
++    return not matched if negated else matched
+diff --git a/tests/test_search.py b/tests/test_search.py
+new file mode 100644
+index 0000000..492dd1c
+--- /dev/null
++++ b/tests/test_search.py
+@@ -0,0 +1,79 @@
++import pytest
++
++from shoplib.search import Product, search
++
++
++@pytest.fixture
++def products():
++    return [
++        Product("MUG-RED", "Blue travel mug", 900, ["Sale", "drinkware"]),
++        Product("MUG-BLU", "Mug in blue", 1200, ["new", "drinkware"]),
++        Product("CUP-1", "Blue cup", 1500, ["sale"]),
++        Product("PLATE", "Red plate", 1000),
++    ]
++
++
++def test_empty_query_matches_all_and_results_keep_input_order(products):
++    assert search(products, " \t\n") == products
++    assert search(products, "blue") == products[:3]
++
++
++def test_bare_terms_and_quoted_phrases_match_name_case_insensitively(products):
++    assert search(products, "BLUE") == products[:3]
++    assert search(products, '"blue travel"') == products[:1]
++    assert search(products, 'name:"IN BLUE"') == products[1:2]
++    # A quoted whole term is a name phrase, even when it contains a colon.
++    assert search(products, '"tag:sale"') == []
++
++
++def test_field_matching_and_prefixes(products):
++    assert search(products, "sku:mug-red") == products[:1]
++    assert search(products, "tag:SALE") == [products[0], products[2]]
++    assert search(products, "sku:MUG-*") == products[:2]
++    assert search(products, "tag:drink*") == products[:2]
++    assert search(products, "sku:MUG") == []
++    # A star anywhere other than the final character remains literal.
++    with_star = Product("MU*G-1", "Star mug", 500)
++    assert search([with_star], "sku:MU*G-*") == [with_star]
++    assert search([with_star], "sku:MU?G-*") == []
++
++
++def test_negation_applies_to_a_term(products):
++    assert search(products, "blue -tag:sale") == [products[1]]
++    assert search(products, "-sku:MUG-*") == products[2:]
++    assert search(products, '-"blue travel"') == products[1:]
++
++
++@pytest.mark.parametrize(
++    ("query", "expected"),
++    [
++        ("price<1000", [0]),
++        ("price<=1000", [0, 3]),
++        ("price>1000", [1, 2]),
++        ("price>=1000", [1, 2, 3]),
++        ("price=1000", [3]),
++        ("-price<1000", [1, 2, 3]),
++    ],
++)
++def test_price_comparisons(products, query, expected):
++    assert search(products, query) == [products[index] for index in expected]
++
++
++@pytest.mark.parametrize(
++    "query",
++    [
++        "other:value",
++        "price:5",
++        "tag:",
++        'name:""',
++        "-",
++        '"unclosed',
++        "price>",
++        "price>=one",
++        "price<1.5",
++        "price>=-1",
++    ],
++)
++def test_invalid_queries_raise_value_error(products, query):
++    with pytest.raises(ValueError):
++        search(products, query)

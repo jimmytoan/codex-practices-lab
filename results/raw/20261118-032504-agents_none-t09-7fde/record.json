@@ -1,0 +1,84 @@
+{
+  "run_id": "20261118-032504-agents_none-t09-7fde",
+  "ts": "2026-11-17T19:25:53+00:00",
+  "tag": "full-luna",
+  "condition": "agents_none",
+  "task": "t09-slug-accents",
+  "model": "gpt-6-luna",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "none",
+  "prompt": "four_part",
+  "mode": "direct",
+  "variant": "",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 48.2,
+      "usage": {
+        "input_tokens": 151480,
+        "cached_input_tokens": 132372,
+        "cache_write_input_tokens": 19081,
+        "output_tokens": 4264,
+        "reasoning_output_tokens": 2958
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 151480,
+    "cached_input_tokens": 132372,
+    "cache_write_input_tokens": 19081,
+    "output_tokens": 4264,
+    "reasoning_output_tokens": 2958
+  },
+  "cost_usd": 0.00823,
+  "cost_usd_low": 0.00584,
+  "wall_s": 48.2,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_accents[Caf\\xe9\\u2014au lait-cafe-au-lait]",
+      "test_accents[Cr\\xe8me Br\\xfbl\\xe9e-creme-brulee]",
+      "test_accents[Se\\xf1or Pi\\xf1ata-senor-pinata]",
+      "test_accents[\\u017dlu\\u0165ou\\u010dk\\xfd k\\u016f\\u0148-zlutoucky-kun]",
+      "test_accents[\\xc5NGSTR\\xd6M unit-angstrom-unit]",
+      "test_cut_never_leaves_trailing_dash",
+      "test_empty",
+      "test_max_len_counts_after_transliteration",
+      "test_plain_names_unchanged"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "24 passed in 0.01s"
+    ]
+  },
+  "rule_followed": null,
+  "changed_files": [
+    "src/shoplib/textutil.py",
+    "tests/test_textutil.py"
+  ],
+  "out_of_scope": [],
+  "commands": 5,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 0,
+    "agents_loaded_text_tail": null,
+    "turns": [
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": false
+  }
+}

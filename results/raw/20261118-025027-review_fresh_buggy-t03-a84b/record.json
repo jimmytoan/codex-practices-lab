@@ -1,0 +1,120 @@
+{
+  "run_id": "20261118-025027-review_fresh_buggy-t03-a84b",
+  "ts": "2026-11-17T18:50:56+00:00",
+  "tag": "full-terra",
+  "condition": "review_fresh_buggy",
+  "task": "t03-inventory-release",
+  "model": "gpt-6.1-terra",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "review_fresh",
+  "variant": "buggy",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 28.1,
+      "usage": {
+        "input_tokens": 81072,
+        "cached_input_tokens": 63282,
+        "cache_write_input_tokens": 17775,
+        "output_tokens": 1385,
+        "reasoning_output_tokens": 136
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 81072,
+    "cached_input_tokens": 63282,
+    "cache_write_input_tokens": 17775,
+    "output_tokens": 1385,
+    "reasoning_output_tokens": 136
+  },
+  "cost_usd": 0.05454,
+  "cost_usd_low": 0.03232,
+  "wall_s": 28.1,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_qty_must_be_positive[-1]",
+      "test_qty_must_be_positive[0]",
+      "test_release_all_then_reserve_again",
+      "test_release_more_than_reserved_changes_nothing",
+      "test_release_part",
+      "test_unknown_or_unreserved_sku"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "30 passed in 0.02s"
+    ]
+  },
+  "rule_followed": true,
+  "changed_files": [
+    "src/shoplib/inventory.py",
+    "tests/test_inventory.py"
+  ],
+  "out_of_scope": [],
+  "commands": 7,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6.1-terra",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "applied_exactly": true,
+  "before_review": {
+    "passed": [
+      "test_qty_must_be_positive[-1]",
+      "test_release_all_then_reserve_again",
+      "test_release_part"
+    ],
+    "failed": [
+      "test_qty_must_be_positive[0]",
+      "test_release_more_than_reserved_changes_nothing",
+      "test_unknown_or_unreserved_sku"
+    ],
+    "error": null,
+    "ok": false
+  },
+  "findings": [
+    {
+      "file": "src/shoplib/inventory.py",
+      "description": "Zero quantity was accepted, sometimes causing a KeyError. Fixed to reject nonpositive quantities."
+    },
+    {
+      "file": "src/shoplib/inventory.py",
+      "description": "The release limit used on-hand stock instead of reserved stock, allowing invalid releases. Fixed and added tests. Full suite: 30 passed."
+    }
+  ],
+  "bug_signatures": {
+    "checks-on-hand": [
+      "test_release_more_than_reserved_changes_nothing",
+      "test_unknown_or_unreserved_sku"
+    ],
+    "accepts-zero": [
+      "test_qty_must_be_positive[0]"
+    ]
+  },
+  "bugs_caught": [
+    "accepts-zero",
+    "checks-on-hand"
+  ],
+  "regressions": []
+}

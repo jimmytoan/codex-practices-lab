@@ -1,0 +1,104 @@
+{
+  "run_id": "20261118-055211-plan-t14-e91e",
+  "ts": "2026-11-17T21:53:38+00:00",
+  "tag": "full-luna",
+  "condition": "plan",
+  "task": "t14-store-days",
+  "model": "gpt-6-luna",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "plan",
+  "variant": "",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 18.0,
+      "usage": {
+        "input_tokens": 58191,
+        "cached_input_tokens": 42689,
+        "cache_write_input_tokens": 15490,
+        "output_tokens": 1045,
+        "reasoning_output_tokens": 443
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    },
+    {
+      "status": "ok",
+      "wall_s": 68.2,
+      "usage": {
+        "input_tokens": 239510,
+        "cached_input_tokens": 216660,
+        "cache_write_input_tokens": 22811,
+        "output_tokens": 6118,
+        "reasoning_output_tokens": 2735
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 297701,
+    "cached_input_tokens": 259349,
+    "cache_write_input_tokens": 38301,
+    "output_tokens": 7163,
+    "reasoning_output_tokens": 3178
+  },
+  "cost_usd": 0.01576,
+  "cost_usd_low": 0.01097,
+  "wall_s": 86.2,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_early_morning_belongs_to_previous_day",
+      "test_empty",
+      "test_exactly_at_start_hour_is_new_day",
+      "test_gaps_filled_with_zero_and_sorted",
+      "test_naive_timestamp_is_an_error",
+      "test_offsets_in_timestamps",
+      "test_other_offset_and_start",
+      "test_totals_and_refunds",
+      "test_year_boundary"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "27 passed in 0.02s"
+    ]
+  },
+  "rule_followed": null,
+  "changed_files": [
+    "src/shoplib/storedays.py",
+    "tests/test_storedays.py"
+  ],
+  "out_of_scope": [],
+  "commands": 8,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "read-only"
+      },
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "plan_text": "1. Parse each ISO 8601 timestamp, including `Z` and numeric offsets; reject timestamps without a zone using `ShopError`, which is a `ValueError` subclass.\n2. Convert each timestamp to the shop\u2019s local time and assign it to the store day based on `day_starts_hour`, including the exact-start boundary.\n3. Sum integer cents per day, including refunds, then return every day between the first and last sale with zeroes for gaps; return an empty list when there are no sales.\n4. Add tests in `tests/test_storedays.py` for timezone conversion, day boundaries, refunds, gaps, empty input, and the missing-zone error; then run `python -m pytest -q`.",
+  "edits_during_plan": []
+}

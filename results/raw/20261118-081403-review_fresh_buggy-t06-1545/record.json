@@ -1,0 +1,135 @@
+{
+  "run_id": "20261118-081403-review_fresh_buggy-t06-1545",
+  "ts": "2026-11-18T00:14:30+00:00",
+  "tag": "full-luna",
+  "condition": "review_fresh_buggy",
+  "task": "t06-business-days",
+  "model": "gpt-6-luna",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "review_fresh",
+  "variant": "buggy",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 26.1,
+      "usage": {
+        "input_tokens": 108266,
+        "cached_input_tokens": 91298,
+        "cache_write_input_tokens": 16947,
+        "output_tokens": 1624,
+        "reasoning_output_tokens": 634
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 108266,
+    "cached_input_tokens": 91298,
+    "cache_write_input_tokens": 16947,
+    "output_tokens": 1624,
+    "reasoning_output_tokens": 634
+  },
+  "cost_usd": 0.00596,
+  "cost_usd_low": 0.00385,
+  "wall_s": 26.1,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_backward",
+      "test_backward_from_weekend",
+      "test_backward_skips_holidays",
+      "test_forward_skips_holidays",
+      "test_forward_still_works",
+      "test_holiday_on_weekend_changes_nothing",
+      "test_round_trip[10]",
+      "test_round_trip[23]",
+      "test_round_trip[5]",
+      "test_zero_on_business_day",
+      "test_zero_on_holiday_moves_forward",
+      "test_zero_on_weekend_moves_forward"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "24 passed in 0.01s"
+    ]
+  },
+  "rule_followed": null,
+  "changed_files": [
+    "src/shoplib/dates.py",
+    "tests/test_dates.py"
+  ],
+  "out_of_scope": [],
+  "commands": 4,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "applied_exactly": true,
+  "before_review": {
+    "passed": [
+      "test_backward",
+      "test_backward_from_weekend",
+      "test_forward_skips_holidays",
+      "test_forward_still_works",
+      "test_holiday_on_weekend_changes_nothing",
+      "test_zero_on_business_day"
+    ],
+    "failed": [
+      "test_backward_skips_holidays",
+      "test_round_trip[10]",
+      "test_round_trip[23]",
+      "test_round_trip[5]",
+      "test_zero_on_holiday_moves_forward",
+      "test_zero_on_weekend_moves_forward"
+    ],
+    "error": null,
+    "ok": false
+  },
+  "findings": [
+    {
+      "file": "src/shoplib/dates.py",
+      "description": "Negative offsets ignored holidays, so backward calculations could return a holiday. They now skip holidays in both directions."
+    },
+    {
+      "file": "src/shoplib/dates.py",
+      "description": "For n == 0, the function returned a non-business start date unchanged. It now returns the start date when it is a business day, otherwise the first business day after it."
+    }
+  ],
+  "bug_signatures": {
+    "zero-does-not-move": [
+      "test_zero_on_holiday_moves_forward",
+      "test_zero_on_weekend_moves_forward"
+    ],
+    "backward-ignores-holidays": [
+      "test_backward_skips_holidays",
+      "test_round_trip[10]",
+      "test_round_trip[23]",
+      "test_round_trip[5]"
+    ]
+  },
+  "bugs_caught": [
+    "backward-ignores-holidays",
+    "zero-does-not-move"
+  ],
+  "regressions": []
+}

@@ -1,0 +1,133 @@
+{
+  "run_id": "20261118-081910-review_same_clean-t03-0cd6",
+  "ts": "2026-11-18T00:20:09+00:00",
+  "tag": "full-luna",
+  "condition": "review_same_clean",
+  "task": "t03-inventory-release",
+  "model": "gpt-6-luna",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "review_same",
+  "variant": "clean",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 10.0,
+      "usage": {
+        "input_tokens": 43929,
+        "cached_input_tokens": 28833,
+        "cache_write_input_tokens": 15087,
+        "output_tokens": 694,
+        "reasoning_output_tokens": 207
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    },
+    {
+      "status": "ok",
+      "wall_s": 48.2,
+      "usage": {
+        "input_tokens": 171229,
+        "cached_input_tokens": 135590,
+        "cache_write_input_tokens": 35609,
+        "output_tokens": 4980,
+        "reasoning_output_tokens": 3528
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 215158,
+    "cached_input_tokens": 164423,
+    "cache_write_input_tokens": 50696,
+    "output_tokens": 5674,
+    "reasoning_output_tokens": 3735
+  },
+  "cost_usd": 0.01716,
+  "cost_usd_low": 0.01082,
+  "wall_s": 58.2,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_qty_must_be_positive[-1]",
+      "test_qty_must_be_positive[0]",
+      "test_release_all_then_reserve_again",
+      "test_release_more_than_reserved_changes_nothing",
+      "test_release_part",
+      "test_unknown_or_unreserved_sku"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "26 passed in 0.01s"
+    ]
+  },
+  "rule_followed": true,
+  "changed_files": [
+    "src/shoplib/inventory.py",
+    "tests/test_inventory.py"
+  ],
+  "out_of_scope": [],
+  "commands": 7,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      },
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "applied_exactly": true,
+  "before_review": {
+    "passed": [
+      "test_qty_must_be_positive[-1]",
+      "test_qty_must_be_positive[0]",
+      "test_release_all_then_reserve_again",
+      "test_release_more_than_reserved_changes_nothing",
+      "test_release_part",
+      "test_unknown_or_unreserved_sku"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "findings": [
+    {
+      "file": "src/shoplib/inventory.py",
+      "description": "No bugs found. Added tests for successful release, nonpositive quantities, and releases exceeding the reserved amount. `python -m pytest -q` passed (26 tests)."
+    }
+  ],
+  "bug_signatures": {
+    "checks-on-hand": [
+      "test_release_more_than_reserved_changes_nothing",
+      "test_unknown_or_unreserved_sku"
+    ],
+    "accepts-zero": [
+      "test_qty_must_be_positive[0]"
+    ]
+  },
+  "bugs_caught": [
+    "accepts-zero",
+    "checks-on-hand"
+  ],
+  "regressions": []
+}

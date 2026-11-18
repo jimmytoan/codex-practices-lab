@@ -1,0 +1,95 @@
+OK   short AGENTS.md is under 4 KiB and has the rule
+OK   bloated AGENTS.md is short + ~25 KiB, under the 32 KiB limit, rule near the top
+OK   rule_early: file past the limit, rule in the first 2 KiB
+OK   rule_late: rule starts after byte 32768
+OK   rule_early and rule_late are the same size
+OK   bloated: the rule appears exactly once
+OK   rule_early: the rule appears exactly once
+OK   filler never mentions the rule
+OK   t01-shipping-boundary: untouched repo fails hidden tests
+OK   t01-shipping-boundary: reference passes 14 hidden tests and the visible suite
+OK   t01-shipping-boundary: rule test fails on ValueError, passes on ShopError
+OK   t02-bulk-discount: untouched repo fails hidden tests
+OK   t02-bulk-discount: reference passes 8 hidden tests and the visible suite
+OK   t02-bulk-discount: no rule test (not a rule task)
+OK   t03-inventory-release: untouched repo fails hidden tests
+OK   t03-inventory-release: reference passes 6 hidden tests and the visible suite
+OK   t03-inventory-release: rule test fails on ValueError, passes on ShopError
+OK   t04-order-cancel: untouched repo fails hidden tests
+OK   t04-order-cancel: reference passes 7 hidden tests and the visible suite
+OK   t04-order-cancel: rule test fails on ValueError, passes on ShopError
+OK   t05-csv-quoting: untouched repo fails hidden tests
+OK   t05-csv-quoting: reference passes 8 hidden tests and the visible suite
+OK   t05-csv-quoting: no rule test (not a rule task)
+OK   t06-business-days: untouched repo fails hidden tests
+OK   t06-business-days: reference passes 12 hidden tests and the visible suite
+OK   t06-business-days: no rule test (not a rule task)
+OK   t07-coupon-stacking: untouched repo fails hidden tests
+OK   t07-coupon-stacking: reference passes 13 hidden tests and the visible suite
+OK   t07-coupon-stacking: rule test fails on ValueError, passes on ShopError
+OK   t08-cli-json: untouched repo fails hidden tests
+OK   t08-cli-json: reference passes 7 hidden tests and the visible suite
+OK   t08-cli-json: no rule test (not a rule task)
+OK   t09-slug-accents: untouched repo fails hidden tests
+OK   t09-slug-accents: reference passes 9 hidden tests and the visible suite
+OK   t09-slug-accents: no rule test (not a rule task)
+OK   t10-split-parcels: untouched repo fails hidden tests
+OK   t10-split-parcels: reference passes 14 hidden tests and the visible suite
+OK   t10-split-parcels: rule test fails on ValueError, passes on ShopError
+OK   t11-invoice-tax: untouched repo fails hidden tests
+OK   t11-invoice-tax: reference passes 24 hidden tests and the visible suite
+OK   t11-invoice-tax: no rule test (not a rule task)
+OK   t12-search-query: untouched repo fails hidden tests
+OK   t12-search-query: reference passes 19 hidden tests and the visible suite
+OK   t12-search-query: no rule test (not a rule task)
+OK   t13-fifo-costing: untouched repo fails hidden tests
+OK   t13-fifo-costing: reference passes 15 hidden tests and the visible suite
+OK   t13-fifo-costing: no rule test (not a rule task)
+OK   t14-store-days: untouched repo fails hidden tests
+OK   t14-store-days: reference passes 9 hidden tests and the visible suite
+OK   t14-store-days: no rule test (not a rule task)
+OK   t03-inventory-release: every seeded bug breaks at least one hidden test
+OK   t03-inventory-release: the two bugs break different tests
+OK   t03-inventory-release: both bugs together fail exactly the union
+OK   t03-inventory-release: seeded bugs still pass the visible suite (they look done)
+OK   t06-business-days: every seeded bug breaks at least one hidden test
+OK   t06-business-days: the two bugs break different tests
+OK   t06-business-days: both bugs together fail exactly the union
+OK   t06-business-days: seeded bugs still pass the visible suite (they look done)
+OK   t07-coupon-stacking: every seeded bug breaks at least one hidden test
+OK   t07-coupon-stacking: the two bugs break different tests
+OK   t07-coupon-stacking: both bugs together fail exactly the union
+OK   t07-coupon-stacking: seeded bugs still pass the visible suite (they look done)
+OK   t10-split-parcels: every seeded bug breaks at least one hidden test
+OK   t10-split-parcels: the two bugs break different tests
+OK   t10-split-parcels: both bugs together fail exactly the union
+OK   t10-split-parcels: seeded bugs still pass the visible suite (they look done)
+OK   t11-invoice-tax: every seeded bug breaks at least one hidden test
+OK   t11-invoice-tax: the two bugs break different tests
+OK   t11-invoice-tax: both bugs together fail exactly the union
+OK   t11-invoice-tax: seeded bugs still pass the visible suite (they look done)
+OK   t12-search-query: every seeded bug breaks at least one hidden test
+OK   t12-search-query: the two bugs break different tests
+OK   t12-search-query: both bugs together fail exactly the union
+OK   t12-search-query: seeded bugs still pass the visible suite (they look done)
+OK   t13-fifo-costing: every seeded bug breaks at least one hidden test
+OK   t13-fifo-costing: the two bugs break different tests
+OK   t13-fifo-costing: both bugs together fail exactly the union
+OK   t13-fifo-costing: seeded bugs still pass the visible suite (they look done)
+OK   t14-store-days: every seeded bug breaks at least one hidden test
+OK   t14-store-days: the two bugs break different tests
+OK   t14-store-days: both bugs together fail exactly the union
+OK   t14-store-days: seeded bugs still pass the visible suite (they look done)
+OK   out-of-scope detector flags legacy_pricing.py only
+OK   changes the agent committed are still counted
+OK   event parser reads thread id, usage and commands from a real run
+OK   a turn.failed run is an error (excluded and redone by --resume)
+OK   a run with no turn.completed is an error
+OK   rollout facts: loaded AGENTS.md size, model and effort
+OK   summed rollout token records match turn.completed (live spend guard sees the same numbers)
+OK   cost: terra, cache writes at the 12h price
+OK   cost: terra, cache writes at the 30m price
+OK   cap: a run starts only if spent + in flight + its own kill limit fits
+OK   one repeat of the full matrix is 140 runs (got 140)
+
+SELF-TEST PASSED

@@ -1,0 +1,51 @@
+diff --git a/src/shoplib/shipping.py b/src/shoplib/shipping.py
+index add6985..c59b902 100644
+--- a/src/shoplib/shipping.py
++++ b/src/shoplib/shipping.py
+@@ -16,9 +16,44 @@ def shipping_cost(weight_g: int) -> int:
+ 
+ def split_parcels(items: list[tuple[str, int, int]], max_weight_g: int) -> list[list[str]]:
+     """Split order items into parcels. See docs/shipping.md."""
+-    raise NotImplementedError
++    return [[sku for sku, _ in parcel] for parcel in _pack_units(items, max_weight_g)]
+ 
+ 
+ def shipment_cost(items: list[tuple[str, int, int]], max_weight_g: int) -> int:
+     """Total shipping cost of an order. See docs/shipping.md."""
+-    raise NotImplementedError
++    return sum(
++        shipping_cost(sum(weight for _, weight in parcel))
++        for parcel in _pack_units(items, max_weight_g)
++    )
++
++
++def _pack_units(
++    items: list[tuple[str, int, int]], max_weight_g: int
++) -> list[list[tuple[str, int]]]:
++    """Pack expanded units and retain their weights for shipment pricing."""
++    units: list[tuple[str, int]] = []
++    for sku, unit_weight_g, qty in items:
++        if qty < 1:
++            raise ValueError("quantity must be at least 1")
++        if unit_weight_g < 1:
++            raise ValueError("unit weight must be at least 1 g")
++        if unit_weight_g > max_weight_g:
++            raise ValueError("unit is too heavy for a parcel")
++        units.extend([(sku, unit_weight_g)] * qty)
++
++    units.sort(key=lambda unit: (-unit[1], unit[0]))
++
++    parcels: list[list[tuple[str, int]]] = []
++    parcel_weights: list[int] = []
++    for unit in units:
++        sku, weight_g = unit
++        for index, parcel_weight_g in enumerate(parcel_weights):
++            if parcel_weight_g + weight_g <= max_weight_g:
++                parcels[index].append(unit)
++                parcel_weights[index] += weight_g
++                break
++        else:
++            parcels.append([unit])
++            parcel_weights.append(weight_g)
++
++    return parcels

@@ -1,0 +1,81 @@
+{
+  "run_id": "20261118-072304-prompt_oneline-t03-2679",
+  "ts": "2026-11-17T23:24:03+00:00",
+  "tag": "full-luna",
+  "condition": "prompt_oneline",
+  "task": "t03-inventory-release",
+  "model": "gpt-6-luna",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "one_line",
+  "mode": "direct",
+  "variant": "",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 58.2,
+      "usage": {
+        "input_tokens": 131673,
+        "cached_input_tokens": 113072,
+        "cache_write_input_tokens": 18577,
+        "output_tokens": 1618,
+        "reasoning_output_tokens": 322
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 131673,
+    "cached_input_tokens": 113072,
+    "cache_write_input_tokens": 18577,
+    "output_tokens": 1618,
+    "reasoning_output_tokens": 322
+  },
+  "cost_usd": 0.00659,
+  "cost_usd_low": 0.00426,
+  "wall_s": 58.2,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_qty_must_be_positive[-1]",
+      "test_qty_must_be_positive[0]",
+      "test_release_all_then_reserve_again",
+      "test_release_more_than_reserved_changes_nothing",
+      "test_release_part",
+      "test_unknown_or_unreserved_sku"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "26 passed in 0.01s"
+    ]
+  },
+  "rule_followed": true,
+  "changed_files": [
+    "src/shoplib/inventory.py",
+    "tests/test_inventory.py"
+  ],
+  "out_of_scope": [],
+  "commands": 9,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  }
+}

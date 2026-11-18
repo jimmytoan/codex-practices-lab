@@ -1,0 +1,84 @@
+{
+  "run_id": "20261118-072403-prompt_oneline-t04-98d2",
+  "ts": "2026-11-17T23:26:53+00:00",
+  "tag": "full-luna",
+  "condition": "prompt_oneline",
+  "task": "t04-order-cancel",
+  "model": "gpt-6-luna",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "one_line",
+  "mode": "direct",
+  "variant": "",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 168.4,
+      "usage": {
+        "input_tokens": 195854,
+        "cached_input_tokens": 174905,
+        "cache_write_input_tokens": 20916,
+        "output_tokens": 3387,
+        "reasoning_output_tokens": 1319
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 195854,
+    "cached_input_tokens": 174905,
+    "cache_write_input_tokens": 20916,
+    "output_tokens": 3387,
+    "reasoning_output_tokens": 1319
+  },
+  "cost_usd": 0.00867,
+  "cost_usd_low": 0.00606,
+  "wall_s": 168.4,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_cancel_new_releases_stock",
+      "test_cancel_paid_sets_refund",
+      "test_cancel_twice_is_a_no_op",
+      "test_cancelled_order_cannot_be_paid_or_shipped",
+      "test_cannot_cancel_delivered",
+      "test_cannot_cancel_shipped",
+      "test_other_orders_keep_their_reservation"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "28 passed in 0.02s"
+    ]
+  },
+  "rule_followed": true,
+  "changed_files": [
+    "src/shoplib/inventory.py",
+    "src/shoplib/orders.py",
+    "tests/test_inventory.py",
+    "tests/test_orders.py"
+  ],
+  "out_of_scope": [],
+  "commands": 7,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  }
+}

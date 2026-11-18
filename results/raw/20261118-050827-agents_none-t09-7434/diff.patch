@@ -1,0 +1,59 @@
+diff --git a/src/shoplib/textutil.py b/src/shoplib/textutil.py
+index 061dc23..7ed3c46 100644
+--- a/src/shoplib/textutil.py
++++ b/src/shoplib/textutil.py
+@@ -1,6 +1,7 @@
+ """Text helpers for URLs and listings."""
+ 
+ import re
++import unicodedata
+ 
+ 
+ def slugify(text: str, max_len: int = 40) -> str:
+@@ -12,11 +13,23 @@ def slugify(text: str, max_len: int = 40) -> str:
+     - No leading or trailing '-'.
+     - At most `max_len` characters, cut after the other steps; a cut never
+       leaves a trailing '-'.
+-    - If nothing is left, the slug is 'n-a'.
++    - If nothing is left, the slug is 'n-a', shortened to fit `max_len`.
+     """
+-    slug = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+-    slug = slug[:max_len].rstrip("-")
+-    return slug or "n-a"
++    decomposed = unicodedata.normalize("NFD", text.lower())
++    unaccented = []
++    latin_base = False
++    for char in decomposed:
++        if unicodedata.category(char).startswith("M"):
++            if not latin_base:
++                unaccented.append(char)
++            continue
++        latin_base = unicodedata.name(char, "").startswith("LATIN ")
++        unaccented.append(char)
++
++    slug = re.sub(r"[^a-z0-9]+", "-", "".join(unaccented)).strip("-")
++    limit = max(0, max_len)
++    slug = slug[:limit].rstrip("-")
++    return slug or "n-a"[:limit].rstrip("-")
+ 
+ 
+ def truncate(text: str, max_len: int) -> str:
+diff --git a/tests/test_textutil.py b/tests/test_textutil.py
+index 4c83bb9..5370789 100644
+--- a/tests/test_textutil.py
++++ b/tests/test_textutil.py
+@@ -6,6 +6,14 @@ def test_slugify_basic():
+     assert slugify("!!!") == "n-a"
+ 
+ 
++def test_slugify_accents_and_length():
++    assert slugify("Crème Brûlée") == "creme-brulee"
++    assert slugify("Cafe\u0301 au lait") == "cafe-au-lait"
++    assert slugify("Blue Mug", max_len=7) == "blue-mu"
++    assert slugify("Blue-Mug", max_len=5) == "blue"
++    assert slugify("!!!", max_len=2) == "n"
++
++
+ def test_truncate():
+     assert truncate("hello world", 8) == "hello..."
+     assert truncate("short", 8) == "short"

@@ -1,0 +1,89 @@
+{
+  "run_id": "20261118-013151-agents_none-t01-bf35",
+  "ts": "2026-11-17T17:32:12+00:00",
+  "tag": "full-terra",
+  "condition": "agents_none",
+  "task": "t01-shipping-boundary",
+  "model": "gpt-6.1-terra",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "none",
+  "prompt": "four_part",
+  "mode": "direct",
+  "variant": "",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 20.1,
+      "usage": {
+        "input_tokens": 76150,
+        "cached_input_tokens": 59764,
+        "cache_write_input_tokens": 16371,
+        "output_tokens": 893,
+        "reasoning_output_tokens": 48
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 76150,
+    "cached_input_tokens": 59764,
+    "cache_write_input_tokens": 16371,
+    "output_tokens": 893,
+    "reasoning_output_tokens": 48
+  },
+  "cost_usd": 0.0484,
+  "cost_usd_low": 0.02793,
+  "wall_s": 20.1,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_inside_and_just_over[1-500]",
+      "test_inside_and_just_over[1001-800]",
+      "test_inside_and_just_over[19999-2500]",
+      "test_inside_and_just_over[2001-1200]",
+      "test_inside_and_just_over[5001-2500]",
+      "test_inside_and_just_over[999-500]",
+      "test_invalid[-1]",
+      "test_invalid[0]",
+      "test_invalid[20001]",
+      "test_invalid[50000]",
+      "test_upper_bound_is_inclusive[1000-500]",
+      "test_upper_bound_is_inclusive[2000-800]",
+      "test_upper_bound_is_inclusive[20000-2500]",
+      "test_upper_bound_is_inclusive[5000-1200]"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "32 passed in 0.02s"
+    ]
+  },
+  "rule_followed": false,
+  "changed_files": [
+    "src/shoplib/shipping.py",
+    "tests/test_shipping.py"
+  ],
+  "out_of_scope": [],
+  "commands": 6,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 0,
+    "agents_loaded_text_tail": null,
+    "turns": [
+      {
+        "model": "gpt-6.1-terra",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": false
+  }
+}

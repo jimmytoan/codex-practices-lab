@@ -1,0 +1,83 @@
+{
+  "run_id": "20261118-064554-base-t02-763e",
+  "ts": "2026-11-17T22:46:14+00:00",
+  "tag": "full-luna",
+  "condition": "base",
+  "task": "t02-bulk-discount",
+  "model": "gpt-6-luna",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "direct",
+  "variant": "",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 20.0,
+      "usage": {
+        "input_tokens": 108892,
+        "cached_input_tokens": 92108,
+        "cache_write_input_tokens": 16763,
+        "output_tokens": 1255,
+        "reasoning_output_tokens": 465
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 108892,
+    "cached_input_tokens": 92108,
+    "cache_write_input_tokens": 16763,
+    "output_tokens": 1255,
+    "reasoning_output_tokens": 465
+  },
+  "cost_usd": 0.00574,
+  "cost_usd_low": 0.00365,
+  "wall_s": 20.0,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_discount_at_ten",
+      "test_discount_is_per_line",
+      "test_half_cent_rounds_up_10",
+      "test_half_cent_rounds_up_1990",
+      "test_half_cent_rounds_up_3330",
+      "test_merged_adds_reach_threshold",
+      "test_no_discount_below_ten",
+      "test_totals_are_ints"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "22 passed in 0.01s"
+    ]
+  },
+  "rule_followed": null,
+  "changed_files": [
+    "src/shoplib/cart.py",
+    "tests/test_cart.py"
+  ],
+  "out_of_scope": [],
+  "commands": 4,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  }
+}

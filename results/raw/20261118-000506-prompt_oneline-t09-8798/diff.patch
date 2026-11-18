@@ -1,0 +1,42 @@
+diff --git a/src/shoplib/textutil.py b/src/shoplib/textutil.py
+index 061dc23..421c3e8 100644
+--- a/src/shoplib/textutil.py
++++ b/src/shoplib/textutil.py
+@@ -1,6 +1,7 @@
+ """Text helpers for URLs and listings."""
+ 
+ import re
++import unicodedata
+ 
+ 
+ def slugify(text: str, max_len: int = 40) -> str:
+@@ -14,7 +15,9 @@ def slugify(text: str, max_len: int = 40) -> str:
+       leaves a trailing '-'.
+     - If nothing is left, the slug is 'n-a'.
+     """
+-    slug = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
++    normalized = unicodedata.normalize("NFD", text.lower())
++    unaccented = "".join(char for char in normalized if not unicodedata.combining(char))
++    slug = re.sub(r"[^a-z0-9]+", "-", unaccented).strip("-")
+     slug = slug[:max_len].rstrip("-")
+     return slug or "n-a"
+ 
+diff --git a/tests/test_textutil.py b/tests/test_textutil.py
+index 4c83bb9..dd48c65 100644
+--- a/tests/test_textutil.py
++++ b/tests/test_textutil.py
+@@ -6,6 +6,14 @@ def test_slugify_basic():
+     assert slugify("!!!") == "n-a"
+ 
+ 
++def test_slugify_accented_names():
++    assert slugify("Crème Brûlée") == "creme-brulee"
++    assert slugify("Cre\u0300me Bru\u0302le\u0301e") == "creme-brulee"
++    assert slugify("Été & CAFÉ", max_len=6) == "ete-ca"
++    assert slugify("Crème brûlée", max_len=6) == "creme"
++    assert slugify("!!! é !!!") == "e"
++
++
+ def test_truncate():
+     assert truncate("hello world", 8) == "hello..."
+     assert truncate("short", 8) == "short"

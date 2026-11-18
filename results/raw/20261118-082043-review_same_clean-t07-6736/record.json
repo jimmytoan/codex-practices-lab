@@ -1,0 +1,146 @@
+{
+  "run_id": "20261118-082043-review_same_clean-t07-6736",
+  "ts": "2026-11-18T00:21:47+00:00",
+  "tag": "full-luna",
+  "condition": "review_same_clean",
+  "task": "t07-coupon-stacking",
+  "model": "gpt-6-luna",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "review_same",
+  "variant": "clean",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 12.0,
+      "usage": {
+        "input_tokens": 59615,
+        "cached_input_tokens": 44346,
+        "cache_write_input_tokens": 15257,
+        "output_tokens": 945,
+        "reasoning_output_tokens": 167
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    },
+    {
+      "status": "ok",
+      "wall_s": 50.2,
+      "usage": {
+        "input_tokens": 236019,
+        "cached_input_tokens": 197868,
+        "cache_write_input_tokens": 38112,
+        "output_tokens": 5339,
+        "reasoning_output_tokens": 2585
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 295634,
+    "cached_input_tokens": 242214,
+    "cache_write_input_tokens": 53369,
+    "output_tokens": 6284,
+    "reasoning_output_tokens": 2752
+  },
+  "cost_usd": 0.01891,
+  "cost_usd_low": 0.01224,
+  "wall_s": 62.2,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_all_fixed_apply",
+      "test_expired_best_percent_falls_back_to_next",
+      "test_expired_ignored_but_today_is_valid",
+      "test_minimum_not_met",
+      "test_minimum_uses_original_subtotal",
+      "test_negative_subtotal",
+      "test_never_below_zero_and_codes_still_listed",
+      "test_no_coupons",
+      "test_only_best_percent_applies",
+      "test_percent_rounds_half_up",
+      "test_percent_then_fixed",
+      "test_percent_tie_takes_first_code",
+      "test_zero_subtotal"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "27 passed in 0.01s"
+    ]
+  },
+  "rule_followed": true,
+  "changed_files": [
+    "src/shoplib/discounts.py",
+    "tests/test_discounts.py"
+  ],
+  "out_of_scope": [],
+  "commands": 9,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      },
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "applied_exactly": true,
+  "before_review": {
+    "passed": [
+      "test_all_fixed_apply",
+      "test_expired_best_percent_falls_back_to_next",
+      "test_expired_ignored_but_today_is_valid",
+      "test_minimum_not_met",
+      "test_minimum_uses_original_subtotal",
+      "test_negative_subtotal",
+      "test_never_below_zero_and_codes_still_listed",
+      "test_no_coupons",
+      "test_only_best_percent_applies",
+      "test_percent_rounds_half_up",
+      "test_percent_then_fixed",
+      "test_percent_tie_takes_first_code",
+      "test_zero_subtotal"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "findings": [
+    {
+      "file": "src/shoplib/discounts.py",
+      "description": "Unsupported coupon kinds were silently ignored. Added validation that raises ShopError, with regression coverage. `python -m pytest -q` passes (27 tests)."
+    }
+  ],
+  "bug_signatures": {
+    "expiry-day-excluded": [
+      "test_expired_ignored_but_today_is_valid"
+    ],
+    "tie-not-by-code": [
+      "test_percent_tie_takes_first_code"
+    ]
+  },
+  "bugs_caught": [
+    "expiry-day-excluded",
+    "tie-not-by-code"
+  ],
+  "regressions": []
+}

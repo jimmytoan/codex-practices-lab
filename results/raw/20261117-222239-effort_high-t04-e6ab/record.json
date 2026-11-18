@@ -1,0 +1,84 @@
+{
+  "run_id": "20261117-222239-effort_high-t04-e6ab",
+  "ts": "2026-11-17T14:24:00+00:00",
+  "tag": "full-terra",
+  "condition": "effort_high",
+  "task": "t04-order-cancel",
+  "model": "gpt-6.1-terra",
+  "effort": "high",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "direct",
+  "variant": "",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 80.2,
+      "usage": {
+        "input_tokens": 107260,
+        "cached_input_tokens": 86895,
+        "cache_write_input_tokens": 20347,
+        "output_tokens": 3145,
+        "reasoning_output_tokens": 870
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 107260,
+    "cached_input_tokens": 86895,
+    "cache_write_input_tokens": 20347,
+    "output_tokens": 3145,
+    "reasoning_output_tokens": 870
+  },
+  "cost_usd": 0.07096,
+  "cost_usd_low": 0.04552,
+  "wall_s": 80.2,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_cancel_new_releases_stock",
+      "test_cancel_paid_sets_refund",
+      "test_cancel_twice_is_a_no_op",
+      "test_cancelled_order_cannot_be_paid_or_shipped",
+      "test_cannot_cancel_delivered",
+      "test_cannot_cancel_shipped",
+      "test_other_orders_keep_their_reservation"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "32 passed in 0.02s"
+    ]
+  },
+  "rule_followed": true,
+  "changed_files": [
+    "src/shoplib/inventory.py",
+    "src/shoplib/orders.py",
+    "tests/test_inventory.py",
+    "tests/test_orders.py"
+  ],
+  "out_of_scope": [],
+  "commands": 14,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6.1-terra",
+        "effort": "high",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  }
+}

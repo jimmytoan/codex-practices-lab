@@ -1,0 +1,87 @@
+{
+  "run_id": "20261117-233106-agents_none-t06-246d",
+  "ts": "2026-11-17T15:31:43+00:00",
+  "tag": "full-terra",
+  "condition": "agents_none",
+  "task": "t06-business-days",
+  "model": "gpt-6.1-terra",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "none",
+  "prompt": "four_part",
+  "mode": "direct",
+  "variant": "",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 36.1,
+      "usage": {
+        "input_tokens": 76872,
+        "cached_input_tokens": 59927,
+        "cache_write_input_tokens": 16930,
+        "output_tokens": 1406,
+        "reasoning_output_tokens": 74
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 76872,
+    "cached_input_tokens": 59927,
+    "cache_write_input_tokens": 16930,
+    "output_tokens": 1406,
+    "reasoning_output_tokens": 74
+  },
+  "cost_usd": 0.05237,
+  "cost_usd_low": 0.0312,
+  "wall_s": 36.1,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_backward",
+      "test_backward_from_weekend",
+      "test_backward_skips_holidays",
+      "test_forward_skips_holidays",
+      "test_forward_still_works",
+      "test_holiday_on_weekend_changes_nothing",
+      "test_round_trip[10]",
+      "test_round_trip[23]",
+      "test_round_trip[5]",
+      "test_zero_on_business_day",
+      "test_zero_on_holiday_moves_forward",
+      "test_zero_on_weekend_moves_forward"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "30 passed in 0.03s"
+    ]
+  },
+  "rule_followed": null,
+  "changed_files": [
+    "src/shoplib/dates.py",
+    "tests/test_dates.py"
+  ],
+  "out_of_scope": [],
+  "commands": 6,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 0,
+    "agents_loaded_text_tail": null,
+    "turns": [
+      {
+        "model": "gpt-6.1-terra",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": false
+  }
+}

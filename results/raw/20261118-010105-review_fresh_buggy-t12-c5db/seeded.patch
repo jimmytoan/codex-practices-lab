@@ -1,0 +1,85 @@
+diff --git a/src/shoplib/search.py b/src/shoplib/search.py
+index 2c1a324..082d7df 100644
+--- a/src/shoplib/search.py
++++ b/src/shoplib/search.py
+@@ -1,5 +1,7 @@
+ """Product search. See docs/search.md."""
+ 
++import operator
++import re
+ from dataclasses import dataclass, field
+ 
+ 
+@@ -13,4 +15,71 @@ class Product:
+ 
+ def search(products: list[Product], query: str) -> list[Product]:
+     """The products that match `query`, in their input order. See docs/search.md."""
+-    raise NotImplementedError
++    predicates = [_term(text, first_quote) for text, first_quote in _tokens(query)]
++    return [p for p in products if all(pred(p) for pred in predicates)]
++
++
++FIELDS = ("sku", "name", "tag")
++PRICE = re.compile(r"price(<=|>=|<|>|=)(.*)\Z", re.S)
++OPS = {"<": operator.lt, "<=": operator.le, ">": operator.gt, ">=": operator.ge, "=": operator.eq}
++
++
++def _tokens(query):
++    """Split on whitespace outside quotes. Each token is (text without quotes, index where the first quote was)."""
++    tokens, cur, in_quote, started, first_quote = [], [], False, False, None
++    for ch in query:
++        if ch == '"':
++            if first_quote is None:
++                first_quote = len(cur)
++            in_quote = not in_quote
++            started = True
++        elif ch.isspace() and not in_quote:
++            if started:
++                tokens.append(("".join(cur), first_quote))
++            cur, started, first_quote = [], False, None
++        else:
++            cur.append(ch)
++            started = True
++    if in_quote:
++        raise ValueError("unclosed quote")
++    if started:
++        tokens.append(("".join(cur), first_quote))
++    return tokens
++
++
++def _term(text, first_quote):
++    if text.startswith("-") and first_quote != 0:
++        inner = _term_body(text[1:], None if first_quote is None else first_quote - 1)
++        return lambda p: not inner(p)
++    return _term_body(text, first_quote)
++
++
++def _term_body(text, first_quote):
++    if text == "" and first_quote is None:
++        raise ValueError("empty term")
++    unquoted = text if first_quote is None else text[:first_quote]
++    m = PRICE.match(text) if first_quote is None else None
++    if m:
++        op, value = m.groups()
++        if not re.fullmatch(r"[0-9]+", value):
++            raise ValueError(f"bad price {value!r}")
++        return lambda p: OPS[op](p.price_cents, int(value))
++    if ":" in unquoted:
++        field, value = text.split(":", 1)
++        if field not in FIELDS:
++            raise ValueError(f"unknown field {field!r}")
++        if value == "":
++            raise ValueError(f"empty value for {field}")
++        v = value.lower()
++        if field == "name":
++            return lambda p: v == p.name.lower()
++        if v.endswith("*"):
++            prefix = v[:-1]
++            if field == "sku":
++                return lambda p: p.sku.lower().startswith(prefix)
++            return lambda p: any(t.startswith(prefix) for t in p.tags)
++        if field == "sku":
++            return lambda p: p.sku.lower() == v
++        return lambda p: any(t == v for t in p.tags)
++    word = text.lower()
++    return lambda p: word in p.name.lower()

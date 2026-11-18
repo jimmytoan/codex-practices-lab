@@ -1,0 +1,107 @@
+{
+  "run_id": "20261117-220001-plan-t06-3916",
+  "ts": "2026-11-17T14:00:38+00:00",
+  "tag": "full-terra",
+  "condition": "plan",
+  "task": "t06-business-days",
+  "model": "gpt-6.1-terra",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "plan",
+  "variant": "",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 14.0,
+      "usage": {
+        "input_tokens": 29165,
+        "cached_input_tokens": 14145,
+        "cache_write_input_tokens": 15014,
+        "output_tokens": 305,
+        "reasoning_output_tokens": 64
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    },
+    {
+      "status": "ok",
+      "wall_s": 22.1,
+      "usage": {
+        "input_tokens": 78663,
+        "cached_input_tokens": 61232,
+        "cache_write_input_tokens": 17416,
+        "output_tokens": 1129,
+        "reasoning_output_tokens": 64
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 107828,
+    "cached_input_tokens": 75377,
+    "cache_write_input_tokens": 32430,
+    "output_tokens": 1434,
+    "reasoning_output_tokens": 128
+  },
+  "cost_usd": 0.09203,
+  "cost_usd_low": 0.0515,
+  "wall_s": 36.1,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_backward",
+      "test_backward_from_weekend",
+      "test_backward_skips_holidays",
+      "test_forward_skips_holidays",
+      "test_forward_still_works",
+      "test_holiday_on_weekend_changes_nothing",
+      "test_round_trip[10]",
+      "test_round_trip[23]",
+      "test_round_trip[5]",
+      "test_zero_on_business_day",
+      "test_zero_on_holiday_moves_forward",
+      "test_zero_on_weekend_moves_forward"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "24 passed in 0.01s"
+    ]
+  },
+  "rule_followed": null,
+  "changed_files": [
+    "src/shoplib/dates.py",
+    "tests/test_dates.py"
+  ],
+  "out_of_scope": [],
+  "commands": 6,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6.1-terra",
+        "effort": "medium",
+        "sandbox": "read-only"
+      },
+      {
+        "model": "gpt-6.1-terra",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "plan_text": "1. Update `add_business_days` to skip weekends and holidays in either direction, and handle zero as specified.\n2. Add tests for holidays, negative and zero offsets, and non-business starting dates.\n3. Run `python -m pytest -q`.",
+  "edits_during_plan": []
+}

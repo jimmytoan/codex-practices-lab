@@ -1,0 +1,192 @@
+diff --git a/src/shoplib/costing.py b/src/shoplib/costing.py
+index 5e8c27e..4356e23 100644
+--- a/src/shoplib/costing.py
++++ b/src/shoplib/costing.py
+@@ -1,6 +1,83 @@
+ """Cost of goods sold with FIFO lots. See docs/costing.md."""
+ 
++from collections import deque
++from decimal import Decimal, localcontext
++
++from shoplib.errors import ShopError
++from shoplib.money import round_cents
++
+ 
+ def fifo_costing(events: list[dict]) -> dict:
+     """Process stock events and report cost per SKU. See docs/costing.md."""
+-    raise NotImplementedError
++    lots = {}
++    totals = {}
++    last_sales = {}
++
++    for event in events:
++        if not isinstance(event, dict):
++            raise ShopError("event must be a dict")
++        try:
++            event_type = event["type"]
++            sku = event["sku"]
++            qty = event["qty"]
++        except KeyError as exc:
++            raise ShopError(f"missing event field: {exc.args[0]}") from exc
++
++        if event_type not in ("receive", "sell", "return"):
++            raise ShopError("unknown event type")
++        if not isinstance(qty, int) or isinstance(qty, bool) or qty < 1:
++            raise ShopError("qty must be a positive integer")
++        try:
++            hash(sku)
++        except TypeError as exc:
++            raise ShopError("sku must be hashable") from exc
++
++        if event_type == "receive":
++            if "unit_cost_cents" not in event:
++                raise ShopError("missing event field: unit_cost_cents")
++            unit_cost = event["unit_cost_cents"]
++            if not isinstance(unit_cost, int) or isinstance(unit_cost, bool) or unit_cost < 0:
++                raise ShopError("unit cost must be a nonnegative integer")
++
++        if sku not in totals:
++            lots[sku] = deque()
++            totals[sku] = {"cogs_cents": 0, "on_hand": 0, "value_cents": 0}
++        stock = totals[sku]
++
++        if event_type == "receive":
++            lots[sku].append((qty, unit_cost))
++            stock["on_hand"] += qty
++            stock["value_cents"] += qty * unit_cost
++        elif event_type == "sell":
++            if qty > stock["on_hand"]:
++                raise ShopError("not enough stock")
++            remaining = qty
++            sale_cost = 0
++            while remaining:
++                lot_qty, unit_cost = lots[sku].popleft()
++                taken = min(remaining, lot_qty)
++                sale_cost += taken * unit_cost
++                remaining -= taken
++                if taken < lot_qty:
++                    lots[sku].appendleft((lot_qty - taken, unit_cost))
++            stock["on_hand"] -= qty
++            stock["value_cents"] -= sale_cost
++            stock["cogs_cents"] += sale_cost
++            # Extra precision preserves half-cent decisions for large integers.
++            with localcontext() as context:
++                context.prec = len(str(sale_cost)) + len(str(qty)) + 2
++                average_cost = round_cents(Decimal(sale_cost) / Decimal(qty))
++            last_sales[sku] = (qty, average_cost)
++        else:
++            if sku not in last_sales:
++                raise ShopError("no sale to return")
++            returnable, unit_cost = last_sales[sku]
++            if qty > returnable:
++                raise ShopError("return exceeds most recent sale")
++            lots[sku].append((qty, unit_cost))
++            stock["on_hand"] += qty
++            stock["value_cents"] += qty * unit_cost
++            stock["cogs_cents"] -= qty * unit_cost
++            last_sales[sku] = (returnable - qty, unit_cost)
++
++    return totals
+diff --git a/tests/test_costing.py b/tests/test_costing.py
+new file mode 100644
+index 0000000..6865b28
+--- /dev/null
++++ b/tests/test_costing.py
+@@ -0,0 +1,97 @@
++from copy import deepcopy
++
++import pytest
++
++from shoplib.costing import fifo_costing
++from shoplib.errors import ShopError
++
++
++def test_fifo_sales_across_lots_and_skus():
++    events = [
++        {"type": "receive", "sku": "A", "qty": 2, "unit_cost_cents": 100},
++        {"type": "receive", "sku": "B", "qty": 1, "unit_cost_cents": 75},
++        {"type": "receive", "sku": "A", "qty": 3, "unit_cost_cents": 150},
++        {"type": "sell", "sku": "A", "qty": 3},
++        {"type": "sell", "sku": "B", "qty": 1},
++    ]
++    original = deepcopy(events)
++    assert fifo_costing(events) == {
++        "A": {"cogs_cents": 350, "on_hand": 2, "value_cents": 300},
++        "B": {"cogs_cents": 75, "on_hand": 0, "value_cents": 0},
++    }
++    assert events == original
++    assert fifo_costing([]) == {}
++
++
++def test_returns_use_rounded_sale_average_and_join_back_of_queue():
++    events = [
++        {"type": "receive", "sku": "A", "qty": 1, "unit_cost_cents": 100},
++        {"type": "receive", "sku": "A", "qty": 3, "unit_cost_cents": 103},
++        {"type": "sell", "sku": "A", "qty": 2},
++        {"type": "return", "sku": "A", "qty": 1},
++        {"type": "return", "sku": "A", "qty": 1},
++        {"type": "receive", "sku": "A", "qty": 1, "unit_cost_cents": 200},
++        {"type": "sell", "sku": "A", "qty": 3},
++    ]
++    assert fifo_costing(events) == {
++        "A": {"cogs_cents": 307, "on_hand": 2, "value_cents": 302}
++    }
++
++
++def test_return_of_latest_sale_after_earlier_sale_and_other_sku_sale():
++    events = [
++        {"type": "receive", "sku": "A", "qty": 2, "unit_cost_cents": 10},
++        {"type": "sell", "sku": "A", "qty": 1},
++        {"type": "receive", "sku": "A", "qty": 1, "unit_cost_cents": 30},
++        {"type": "sell", "sku": "A", "qty": 2},
++        {"type": "receive", "sku": "B", "qty": 1, "unit_cost_cents": 5},
++        {"type": "sell", "sku": "B", "qty": 1},
++        {"type": "return", "sku": "A", "qty": 1},
++    ]
++    assert fifo_costing(events) == {
++        "A": {"cogs_cents": 30, "on_hand": 1, "value_cents": 20},
++        "B": {"cogs_cents": 5, "on_hand": 0, "value_cents": 0},
++    }
++
++
++def test_return_rounding_below_half_with_large_quantities():
++    qty = 10**30 + 1
++    events = [
++        {"type": "receive", "sku": "A", "qty": qty // 2 + 1, "unit_cost_cents": 0},
++        {"type": "receive", "sku": "A", "qty": qty // 2, "unit_cost_cents": 1},
++        {"type": "sell", "sku": "A", "qty": qty},
++        {"type": "return", "sku": "A", "qty": 1},
++    ]
++    assert fifo_costing(events)["A"] == {
++        "cogs_cents": qty // 2, "on_hand": 1, "value_cents": 0
++    }
++
++
++@pytest.mark.parametrize("events", [
++    [{"type": "receive", "sku": "A", "qty": 0, "unit_cost_cents": 1}],
++    [{"type": "receive", "sku": "A", "qty": -1, "unit_cost_cents": 1}],
++    [{"type": "receive", "sku": "A", "qty": 1, "unit_cost_cents": -1}],
++    [{"type": "receive", "sku": "A", "qty": 1.5, "unit_cost_cents": 1}],
++    [{"type": "receive", "sku": "A", "qty": 1, "unit_cost_cents": 1.5}],
++    [{"type": "sell", "sku": "A", "qty": 1}],
++    [{"type": "return", "sku": "A", "qty": 1}],
++    [{"type": "unknown", "sku": "A", "qty": 1}],
++    [{"type": "receive", "sku": "A", "qty": 1}],
++    [
++        {"type": "receive", "sku": "A", "qty": 2, "unit_cost_cents": 3},
++        {"type": "sell", "sku": "A", "qty": 2},
++        {"type": "return", "sku": "A", "qty": 1},
++        {"type": "return", "sku": "A", "qty": 2},
++    ],
++    [
++        {"type": "receive", "sku": "A", "qty": 3, "unit_cost_cents": 3},
++        {"type": "sell", "sku": "A", "qty": 2},
++        {"type": "sell", "sku": "A", "qty": 1},
++        {"type": "return", "sku": "A", "qty": 2},
++    ],
++])
++def test_invalid_events_raise_shop_error_without_modifying_input(events):
++    original = deepcopy(events)
++    with pytest.raises(ShopError):
++        fifo_costing(events)
++    assert events == original

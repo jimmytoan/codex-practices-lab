@@ -1,0 +1,84 @@
+{
+  "run_id": "20261118-051609-agents_bloated-t04-44e6",
+  "ts": "2026-11-17T21:17:14+00:00",
+  "tag": "full-luna",
+  "condition": "agents_bloated",
+  "task": "t04-order-cancel",
+  "model": "gpt-6-luna",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "bloated",
+  "prompt": "four_part",
+  "mode": "direct",
+  "variant": "",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 64.2,
+      "usage": {
+        "input_tokens": 214907,
+        "cached_input_tokens": 188100,
+        "cache_write_input_tokens": 26780,
+        "output_tokens": 3917,
+        "reasoning_output_tokens": 1659
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 214907,
+    "cached_input_tokens": 188100,
+    "cache_write_input_tokens": 26780,
+    "output_tokens": 3917,
+    "reasoning_output_tokens": 1659
+  },
+  "cost_usd": 0.01054,
+  "cost_usd_low": 0.00719,
+  "wall_s": 64.2,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_cancel_new_releases_stock",
+      "test_cancel_paid_sets_refund",
+      "test_cancel_twice_is_a_no_op",
+      "test_cancelled_order_cannot_be_paid_or_shipped",
+      "test_cannot_cancel_delivered",
+      "test_cannot_cancel_shipped",
+      "test_other_orders_keep_their_reservation"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "31 passed in 0.01s"
+    ]
+  },
+  "rule_followed": true,
+  "changed_files": [
+    "src/shoplib/inventory.py",
+    "src/shoplib/orders.py",
+    "tests/test_inventory.py",
+    "tests/test_orders.py"
+  ],
+  "out_of_scope": [],
+  "commands": 5,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 26668,
+    "agents_loaded_text_tail": "y in comments, not what.\n- Tidy cli: the README section (SHOP-154). Prefer plain data structures over clever classes.\n- Clarify docs: naming (SHOP-755). Delete dead code instead of commenting it out.\n",
+    "turns": [
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  }
+}

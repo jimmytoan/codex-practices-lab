@@ -1,0 +1,154 @@
+{
+  "run_id": "20261118-082735-review_same_clean-t13-ed47",
+  "ts": "2026-11-18T00:29:10+00:00",
+  "tag": "full-luna",
+  "condition": "review_same_clean",
+  "task": "t13-fifo-costing",
+  "model": "gpt-6-luna",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "review_same",
+  "variant": "clean",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 14.0,
+      "usage": {
+        "input_tokens": 61764,
+        "cached_input_tokens": 45161,
+        "cache_write_input_tokens": 16591,
+        "output_tokens": 1339,
+        "reasoning_output_tokens": 225
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    },
+    {
+      "status": "ok",
+      "wall_s": 80.3,
+      "usage": {
+        "input_tokens": 367369,
+        "cached_input_tokens": 319480,
+        "cache_write_input_tokens": 47841,
+        "output_tokens": 10864,
+        "reasoning_output_tokens": 6199
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 429133,
+    "cached_input_tokens": 364641,
+    "cache_write_input_tokens": 64432,
+    "output_tokens": 12203,
+    "reasoning_output_tokens": 6424
+  },
+  "cost_usd": 0.02586,
+  "cost_usd_low": 0.01781,
+  "wall_s": 94.3,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_bad_events[event0]",
+      "test_bad_events[event1]",
+      "test_bad_events[event2]",
+      "test_bad_events[event3]",
+      "test_cannot_oversell",
+      "test_events_not_modified",
+      "test_oldest_lots_first",
+      "test_receive_only",
+      "test_return_at_average_cost_half_up",
+      "test_return_is_against_most_recent_sale_only",
+      "test_return_without_sale",
+      "test_returned_units_are_sold_last",
+      "test_several_returns_against_one_sale",
+      "test_skus_are_independent",
+      "test_zero_cost_is_allowed"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "32 passed in 0.02s"
+    ]
+  },
+  "rule_followed": null,
+  "changed_files": [
+    "src/shoplib/costing.py",
+    "tests/test_costing.py"
+  ],
+  "out_of_scope": [],
+  "commands": 9,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      },
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "applied_exactly": true,
+  "before_review": {
+    "passed": [
+      "test_bad_events[event0]",
+      "test_bad_events[event1]",
+      "test_bad_events[event2]",
+      "test_bad_events[event3]",
+      "test_cannot_oversell",
+      "test_events_not_modified",
+      "test_oldest_lots_first",
+      "test_receive_only",
+      "test_return_at_average_cost_half_up",
+      "test_return_is_against_most_recent_sale_only",
+      "test_return_without_sale",
+      "test_returned_units_are_sold_last",
+      "test_several_returns_against_one_sale",
+      "test_skus_are_independent",
+      "test_zero_cost_is_allowed"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "findings": [
+    {
+      "file": "src/shoplib/costing.py",
+      "description": "Fractional quantities or unit costs could produce fractional cent totals. Added validation requiring positive integer quantities and non-negative integer unit costs."
+    },
+    {
+      "file": "src/shoplib/costing.py",
+      "description": "Invalid inputs and disallowed operations raised bare ValueError instead of the repository-required ShopError. Updated these errors; ShopError remains a ValueError subclass."
+    }
+  ],
+  "bug_signatures": {
+    "return-cost-floored": [
+      "test_return_at_average_cost_half_up"
+    ],
+    "returns-sold-first": [
+      "test_returned_units_are_sold_last"
+    ]
+  },
+  "bugs_caught": [
+    "return-cost-floored",
+    "returns-sold-first"
+  ],
+  "regressions": []
+}

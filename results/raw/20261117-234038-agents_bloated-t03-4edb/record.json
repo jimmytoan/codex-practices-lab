@@ -1,0 +1,81 @@
+{
+  "run_id": "20261117-234038-agents_bloated-t03-4edb",
+  "ts": "2026-11-17T15:41:06+00:00",
+  "tag": "full-terra",
+  "condition": "agents_bloated",
+  "task": "t03-inventory-release",
+  "model": "gpt-6.1-terra",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "bloated",
+  "prompt": "four_part",
+  "mode": "direct",
+  "variant": "",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 26.1,
+      "usage": {
+        "input_tokens": 109426,
+        "cached_input_tokens": 85876,
+        "cache_write_input_tokens": 23535,
+        "output_tokens": 1235,
+        "reasoning_output_tokens": 60
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 109426,
+    "cached_input_tokens": 85876,
+    "cache_write_input_tokens": 23535,
+    "output_tokens": 1235,
+    "reasoning_output_tokens": 60
+  },
+  "cost_usd": 0.06932,
+  "cost_usd_low": 0.0399,
+  "wall_s": 26.1,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_qty_must_be_positive[-1]",
+      "test_qty_must_be_positive[0]",
+      "test_release_all_then_reserve_again",
+      "test_release_more_than_reserved_changes_nothing",
+      "test_release_part",
+      "test_unknown_or_unreserved_sku"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "27 passed in 0.02s"
+    ]
+  },
+  "rule_followed": true,
+  "changed_files": [
+    "src/shoplib/inventory.py",
+    "tests/test_inventory.py"
+  ],
+  "out_of_scope": [],
+  "commands": 10,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 26668,
+    "agents_loaded_text_tail": "y in comments, not what.\n- Tidy cli: the README section (SHOP-154). Prefer plain data structures over clever classes.\n- Clarify docs: naming (SHOP-755). Delete dead code instead of commenting it out.\n",
+    "turns": [
+      {
+        "model": "gpt-6.1-terra",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  }
+}

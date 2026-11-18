@@ -1,0 +1,84 @@
+diff --git a/src/shoplib/textutil.py b/src/shoplib/textutil.py
+index 061dc23..a451a00 100644
+--- a/src/shoplib/textutil.py
++++ b/src/shoplib/textutil.py
+@@ -1,6 +1,7 @@
+ """Text helpers for URLs and listings."""
+ 
+ import re
++import unicodedata
+ 
+ 
+ def slugify(text: str, max_len: int = 40) -> str:
+@@ -13,10 +14,29 @@ def slugify(text: str, max_len: int = 40) -> str:
+     - At most `max_len` characters, cut after the other steps; a cut never
+       leaves a trailing '-'.
+     - If nothing is left, the slug is 'n-a'.
++
++    `max_len` must be nonnegative and large enough to hold the fallback if
++    one is needed; otherwise, raise ValueError.
+     """
+-    slug = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
++    if max_len < 0:
++        raise ValueError("max_len must be nonnegative")
++
++    normalized = unicodedata.normalize("NFD", text.lower())
++    characters = []
++    after_latin_letter = False
++    for char in normalized:
++        if unicodedata.combining(char) and after_latin_letter:
++            continue
++        characters.append(char)
++        after_latin_letter = "a" <= char <= "z"
++
++    slug = re.sub(r"[^a-z0-9]+", "-", "".join(characters)).strip("-")
+     slug = slug[:max_len].rstrip("-")
+-    return slug or "n-a"
++    if not slug:
++        if max_len < 3:
++            raise ValueError("max_len must be at least 3 for the fallback slug")
++        return "n-a"
++    return slug
+ 
+ 
+ def truncate(text: str, max_len: int) -> str:
+diff --git a/tests/test_textutil.py b/tests/test_textutil.py
+index 4c83bb9..df063e9 100644
+--- a/tests/test_textutil.py
++++ b/tests/test_textutil.py
+@@ -1,3 +1,5 @@
++import pytest
++
+ from shoplib.textutil import slugify, truncate
+ 
+ 
+@@ -6,6 +8,29 @@ def test_slugify_basic():
+     assert slugify("!!!") == "n-a"
+ 
+ 
++def test_slugify_accented_latin_letters():
++    assert slugify("Crème Brûlée") == "creme-brulee"
++    assert slugify("CAFE\u0301 and Việt") == "cafe-and-viet"
++    assert slugify("a\u0301\u0323b") == "ab"
++
++
++def test_slugify_other_characters_are_separators():
++    assert slugify("--Crème__茶\u0301!42--") == "creme-42"
++    assert slugify("a\u0301β\u0301b") == "a-b"
++    assert slugify("a\ufe0fb") == "a-b"
++
++
++def test_slugify_length_limit():
++    assert slugify("Crème Brûlée", 7) == "creme-b"
++    assert slugify("Crème Brûlée", 6) == "creme"
++    assert slugify("ABC", 1) == "a"
++    assert slugify("!!!", 3) == "n-a"
++    assert slugify("!!!", 40) == "n-a"
++    for text, max_len in [("abc", 0), ("!!!", 1), ("!!!", 2), ("abc", -1)]:
++        with pytest.raises(ValueError):
++            slugify(text, max_len)
++
++
+ def test_truncate():
+     assert truncate("hello world", 8) == "hello..."
+     assert truncate("short", 8) == "short"

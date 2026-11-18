@@ -1,0 +1,143 @@
+{
+  "run_id": "20261118-081504-review_fresh_buggy-t10-0a17",
+  "ts": "2026-11-18T00:15:47+00:00",
+  "tag": "full-luna",
+  "condition": "review_fresh_buggy",
+  "task": "t10-split-parcels",
+  "model": "gpt-6-luna",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "review_fresh",
+  "variant": "buggy",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 42.2,
+      "usage": {
+        "input_tokens": 104528,
+        "cached_input_tokens": 84191,
+        "cache_write_input_tokens": 20319,
+        "output_tokens": 3862,
+        "reasoning_output_tokens": 2672
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 104528,
+    "cached_input_tokens": 84191,
+    "cache_write_input_tokens": 20319,
+    "output_tokens": 3862,
+    "reasoning_output_tokens": 2672
+  },
+  "cost_usd": 0.00785,
+  "cost_usd_low": 0.00531,
+  "wall_s": 42.2,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_bad_item[item0]",
+      "test_bad_item[item1]",
+      "test_bad_item[item2]",
+      "test_bad_item[item3]",
+      "test_empty",
+      "test_exact_fit_is_allowed",
+      "test_first_fit_not_best_fit",
+      "test_heaviest_first_and_first_fit",
+      "test_input_not_mutated",
+      "test_later_small_unit_fills_earlier_parcel",
+      "test_shipment_cost",
+      "test_single_parcel",
+      "test_ties_ordered_by_sku",
+      "test_unit_too_heavy"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "26 passed in 0.01s"
+    ]
+  },
+  "rule_followed": true,
+  "changed_files": [
+    "src/shoplib/shipping.py",
+    "tests/test_shipping.py"
+  ],
+  "out_of_scope": [],
+  "commands": 9,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "applied_exactly": true,
+  "before_review": {
+    "passed": [
+      "test_bad_item[item1]",
+      "test_bad_item[item2]",
+      "test_bad_item[item3]",
+      "test_empty",
+      "test_heaviest_first_and_first_fit",
+      "test_input_not_mutated",
+      "test_single_parcel",
+      "test_unit_too_heavy"
+    ],
+    "failed": [
+      "test_bad_item[item0]",
+      "test_exact_fit_is_allowed",
+      "test_first_fit_not_best_fit",
+      "test_later_small_unit_fills_earlier_parcel",
+      "test_shipment_cost",
+      "test_ties_ordered_by_sku"
+    ],
+    "error": null,
+    "ok": false
+  },
+  "findings": [
+    {
+      "file": "src/shoplib/shipping.py",
+      "description": "Zero quantity was accepted, despite the spec requiring quantities below 1 to raise an error. Changed validation to reject it."
+    },
+    {
+      "file": "src/shoplib/shipping.py",
+      "description": "A parcel whose total weight equaled max_weight_g was incorrectly split because the fit check used <. Changed it to <=."
+    },
+    {
+      "file": "tests/test_shipping.py",
+      "description": "Added coverage for the packing order, weight limit, invalid units, empty orders, and shipment costs. `python -m pytest -q` passes: 26 tests."
+    }
+  ],
+  "bug_signatures": {
+    "exact-fit-rejected": [
+      "test_exact_fit_is_allowed",
+      "test_first_fit_not_best_fit",
+      "test_later_small_unit_fills_earlier_parcel",
+      "test_shipment_cost",
+      "test_ties_ordered_by_sku"
+    ],
+    "accepts-zero-qty": [
+      "test_bad_item[item0]"
+    ]
+  },
+  "bugs_caught": [
+    "accepts-zero-qty",
+    "exact-fit-rejected"
+  ],
+  "regressions": []
+}

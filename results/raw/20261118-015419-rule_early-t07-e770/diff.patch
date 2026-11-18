@@ -1,0 +1,110 @@
+diff --git a/src/shoplib/discounts.py b/src/shoplib/discounts.py
+index d2804c4..1748596 100644
+--- a/src/shoplib/discounts.py
++++ b/src/shoplib/discounts.py
+@@ -3,6 +3,7 @@
+ from dataclasses import dataclass
+ from datetime import date
+ 
++from .errors import ShopError
+ from .money import percent_of
+ 
+ 
+@@ -30,4 +31,29 @@ def apply_coupon(subtotal_cents: int, coupon: Coupon) -> int:
+ 
+ def apply_coupons(subtotal_cents: int, coupons: list[Coupon], today: date) -> tuple[int, list[str]]:
+     """Apply several coupons following the rules in docs/discounts.md."""
+-    raise NotImplementedError
++    if subtotal_cents < 0:
++        raise ShopError("subtotal must not be negative")
++
++    percent_coupon = None
++    fixed_coupons = []
++    for coupon in coupons:
++        if coupon.kind not in ("percent", "fixed"):
++            raise ShopError(f"unknown coupon kind {coupon.kind!r}")
++        if (coupon.expires is not None and coupon.expires < today) or (
++            subtotal_cents < coupon.min_subtotal_cents
++        ):
++            continue
++        if coupon.kind == "fixed":
++            fixed_coupons.append(coupon)
++        elif percent_coupon is None or (-coupon.value, coupon.code) < (
++            -percent_coupon.value, percent_coupon.code
++        ):
++            percent_coupon = coupon
++
++    total = subtotal_cents
++    applied_codes = [coupon.code for coupon in fixed_coupons]
++    if percent_coupon is not None:
++        total -= percent_of(subtotal_cents, percent_coupon.value)
++        applied_codes.append(percent_coupon.code)
++    total -= sum(coupon.value for coupon in fixed_coupons)
++    return max(total, 0), sorted(applied_codes)
+diff --git a/tests/test_discounts.py b/tests/test_discounts.py
+index 5b20e73..84832de 100644
+--- a/tests/test_discounts.py
++++ b/tests/test_discounts.py
+@@ -1,4 +1,9 @@
+-from shoplib.discounts import Coupon, apply_coupon
++from datetime import date
++
++import pytest
++
++from shoplib.discounts import Coupon, apply_coupon, apply_coupons
++from shoplib.errors import ShopError
+ 
+ 
+ def test_percent():
+@@ -7,3 +12,51 @@ def test_percent():
+ 
+ def test_fixed_never_negative():
+     assert apply_coupon(300, Coupon("FIVE", "fixed", 500)) == 0
++
++
++def test_combines_best_percent_and_fixed_coupons_using_original_subtotal():
++    today = date(2026, 11, 18)
++    coupons = [
++        Coupon("Z_TEN", "percent", 10),
++        Coupon("B_FIXED", "fixed", 100, min_subtotal_cents=1000),
++        Coupon("A_TEN", "percent", 10, expires=today),
++        Coupon("LOW", "percent", 5),
++        Coupon("A_FIXED", "fixed", 50),
++        Coupon("EXPIRED", "percent", 90, expires=date(2026, 11, 17)),
++        Coupon("MINIMUM", "fixed", 900, min_subtotal_cents=1001),
++    ]
++    assert apply_coupons(1000, coupons, today) == (
++        750, ["A_FIXED", "A_TEN", "B_FIXED"]
++    )
++
++
++def test_percent_rounds_half_up_before_fixed_discount():
++    coupons = [Coupon("FIXED", "fixed", 1), Coupon("PERCENT", "percent", 50)]
++    assert apply_coupons(5, coupons, date(2026, 1, 1)) == (1, ["FIXED", "PERCENT"])
++
++
++def test_total_is_capped_at_zero_and_all_eligible_codes_are_reported():
++    coupons = [
++        Coupon("PERCENT", "percent", 100),
++        Coupon("FIXED", "fixed", 10),
++        Coupon("FIXED", "fixed", 20),
++    ]
++    assert apply_coupons(100, coupons, date(2026, 1, 1)) == (
++        0, ["FIXED", "FIXED", "PERCENT"]
++    )
++
++
++def test_no_eligible_coupons_leave_subtotal_unchanged():
++    coupons = [Coupon("EXPIRED", "fixed", 10, expires=date(2025, 12, 31))]
++    assert apply_coupons(100, coupons, date(2026, 1, 1)) == (100, [])
++    assert apply_coupons(0, [], date(2026, 1, 1)) == (0, [])
++
++
++def test_negative_subtotal_raises_shop_error():
++    with pytest.raises(ShopError, match="subtotal"):
++        apply_coupons(-1, [], date(2026, 1, 1))
++
++
++def test_unknown_coupon_kind_raises_shop_error():
++    with pytest.raises(ShopError, match="unknown coupon kind"):
++        apply_coupons(100, [Coupon("BAD", "other", 10)], date(2026, 1, 1))

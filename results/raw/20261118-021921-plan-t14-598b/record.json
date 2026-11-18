@@ -1,0 +1,104 @@
+{
+  "run_id": "20261118-021921-plan-t14-598b",
+  "ts": "2026-11-17T18:20:06+00:00",
+  "tag": "full-terra",
+  "condition": "plan",
+  "task": "t14-store-days",
+  "model": "gpt-6.1-terra",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "plan",
+  "variant": "",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 14.0,
+      "usage": {
+        "input_tokens": 46490,
+        "cached_input_tokens": 29880,
+        "cache_write_input_tokens": 16601,
+        "output_tokens": 442,
+        "reasoning_output_tokens": 51
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    },
+    {
+      "status": "ok",
+      "wall_s": 30.2,
+      "usage": {
+        "input_tokens": 120267,
+        "cached_input_tokens": 100992,
+        "cache_write_input_tokens": 19254,
+        "output_tokens": 2475,
+        "reasoning_output_tokens": 371
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 166757,
+    "cached_input_tokens": 130872,
+    "cache_write_input_tokens": 35855,
+    "output_tokens": 2917,
+    "reasoning_output_tokens": 422
+  },
+  "cost_usd": 0.1108,
+  "cost_usd_low": 0.06598,
+  "wall_s": 44.2,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_early_morning_belongs_to_previous_day",
+      "test_empty",
+      "test_exactly_at_start_hour_is_new_day",
+      "test_gaps_filled_with_zero_and_sorted",
+      "test_naive_timestamp_is_an_error",
+      "test_offsets_in_timestamps",
+      "test_other_offset_and_start",
+      "test_totals_and_refunds",
+      "test_year_boundary"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "34 passed in 0.02s"
+    ]
+  },
+  "rule_followed": null,
+  "changed_files": [
+    "src/shoplib/storedays.py",
+    "tests/test_storedays.py"
+  ],
+  "out_of_scope": [],
+  "commands": 9,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6.1-terra",
+        "effort": "medium",
+        "sandbox": "read-only"
+      },
+      {
+        "model": "gpt-6.1-terra",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "plan_text": "1. Parse zoned timestamps, convert them to store-local time, and assign sales to the correct day boundary. Raise `ShopError` for invalid input.\n2. Sum cents by day and fill gaps between the first and last sale.\n3. Add tests for boundaries, time zones, refunds, gaps, empty sales, and missing zones; run `python -m pytest -q`.",
+  "edits_during_plan": []
+}

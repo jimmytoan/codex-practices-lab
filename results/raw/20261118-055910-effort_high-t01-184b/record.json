@@ -1,0 +1,89 @@
+{
+  "run_id": "20261118-055910-effort_high-t01-184b",
+  "ts": "2026-11-17T21:59:33+00:00",
+  "tag": "full-luna",
+  "condition": "effort_high",
+  "task": "t01-shipping-boundary",
+  "model": "gpt-6-luna",
+  "effort": "high",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "direct",
+  "variant": "",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 22.1,
+      "usage": {
+        "input_tokens": 94489,
+        "cached_input_tokens": 77396,
+        "cache_write_input_tokens": 17075,
+        "output_tokens": 1577,
+        "reasoning_output_tokens": 524
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 94489,
+    "cached_input_tokens": 77396,
+    "cache_write_input_tokens": 17075,
+    "output_tokens": 1577,
+    "reasoning_output_tokens": 524
+  },
+  "cost_usd": 0.00583,
+  "cost_usd_low": 0.0037,
+  "wall_s": 22.1,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_inside_and_just_over[1-500]",
+      "test_inside_and_just_over[1001-800]",
+      "test_inside_and_just_over[19999-2500]",
+      "test_inside_and_just_over[2001-1200]",
+      "test_inside_and_just_over[5001-2500]",
+      "test_inside_and_just_over[999-500]",
+      "test_invalid[-1]",
+      "test_invalid[0]",
+      "test_invalid[20001]",
+      "test_invalid[50000]",
+      "test_upper_bound_is_inclusive[1000-500]",
+      "test_upper_bound_is_inclusive[2000-800]",
+      "test_upper_bound_is_inclusive[20000-2500]",
+      "test_upper_bound_is_inclusive[5000-1200]"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "22 passed in 0.01s"
+    ]
+  },
+  "rule_followed": true,
+  "changed_files": [
+    "src/shoplib/shipping.py",
+    "tests/test_shipping.py"
+  ],
+  "out_of_scope": [],
+  "commands": 4,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6-luna",
+        "effort": "high",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  }
+}

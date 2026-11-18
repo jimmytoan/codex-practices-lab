@@ -1,0 +1,99 @@
+{
+  "run_id": "20261117-211427-base-t11-779d",
+  "ts": "2026-11-17T13:15:32+00:00",
+  "tag": "full-terra",
+  "condition": "base",
+  "task": "t11-invoice-tax",
+  "model": "gpt-6.1-terra",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "direct",
+  "variant": "",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 64.2,
+      "usage": {
+        "input_tokens": 147274,
+        "cached_input_tokens": 126564,
+        "cache_write_input_tokens": 20686,
+        "output_tokens": 3654,
+        "reasoning_output_tokens": 530
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 147274,
+    "cached_input_tokens": 126564,
+    "cache_write_input_tokens": 20686,
+    "output_tokens": 3654,
+    "reasoning_output_tokens": 530
+  },
+  "cost_usd": 0.07634,
+  "cost_usd_low": 0.05048,
+  "wall_s": 64.2,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_coupon_capped_at_gross",
+      "test_discounts_always_add_up[101]",
+      "test_discounts_always_add_up[1234]",
+      "test_discounts_always_add_up[1]",
+      "test_discounts_always_add_up[2]",
+      "test_discounts_always_add_up[3]",
+      "test_discounts_always_add_up[997]",
+      "test_discounts_always_add_up[99]",
+      "test_equal_remainders_go_to_earlier_line",
+      "test_errors[args0]",
+      "test_errors[args1]",
+      "test_errors[args2]",
+      "test_errors[args3]",
+      "test_errors[args4]",
+      "test_errors[args5]",
+      "test_errors[args6]",
+      "test_largest_remainder_goes_to_largest_fraction_not_first_line",
+      "test_no_coupon_de",
+      "test_proportional_coupon",
+      "test_shipping_not_taxed_when_no_line_is_taxed",
+      "test_shipping_taxed_at_standard_rate",
+      "test_tax_half_up",
+      "test_tax_rounded_per_line",
+      "test_zero_gross_with_coupon"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "41 passed in 0.02s"
+    ]
+  },
+  "rule_followed": null,
+  "changed_files": [
+    "src/shoplib/invoice.py",
+    "tests/test_invoice.py"
+  ],
+  "out_of_scope": [],
+  "commands": 11,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6.1-terra",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  }
+}

@@ -1,0 +1,53 @@
+diff --git a/src/shoplib/dates.py b/src/shoplib/dates.py
+index afe6759..f12bc9c 100644
+--- a/src/shoplib/dates.py
++++ b/src/shoplib/dates.py
+@@ -20,10 +20,17 @@ def add_business_days(start: date, n: int, holidays=()) -> date:
+ 
+     `start` does not have to be a business day.
+     """
+-    # TODO: holidays and negative n are not handled yet
++    holidays = set(holidays)
+     day = start
+-    while n > 0:
+-        day += timedelta(days=1)
+-        if day.weekday() < 5:
+-            n -= 1
++    if n == 0:
++        while not is_business_day(day, holidays):
++            day += timedelta(days=1)
++        return day
++
++    direction = 1 if n > 0 else -1
++    remaining = abs(n)
++    while remaining:
++        day += timedelta(days=direction)
++        if is_business_day(day, holidays):
++            remaining -= 1
+     return day
+diff --git a/tests/test_dates.py b/tests/test_dates.py
+index fbfd5f2..4f174b3 100644
+--- a/tests/test_dates.py
++++ b/tests/test_dates.py
+@@ -12,3 +12,21 @@ def test_forward_over_weekend():
+     # Friday + 1 business day = Monday
+     assert add_business_days(date(2026, 11, 13), 1) == date(2026, 11, 16)
+     assert add_business_days(date(2026, 11, 16), 3) == date(2026, 11, 19)
++
++
++def test_holidays_are_skipped_in_both_directions():
++    holidays = [date(2026, 11, 16), date(2026, 11, 17)]
++    assert add_business_days(date(2026, 11, 13), 1, iter(holidays)) == date(2026, 11, 18)
++    assert add_business_days(date(2026, 11, 18), -1, iter(holidays)) == date(2026, 11, 13)
++
++
++def test_negative_days_start_strictly_before_start():
++    assert add_business_days(date(2026, 11, 16), -2) == date(2026, 11, 12)
++    assert add_business_days(date(2026, 11, 15), -1) == date(2026, 11, 13)
++
++
++def test_zero_days_returns_start_or_next_business_day():
++    holiday = date(2026, 11, 16)
++    assert add_business_days(date(2026, 11, 17), 0, [holiday]) == date(2026, 11, 17)
++    assert add_business_days(holiday, 0, [holiday]) == date(2026, 11, 17)
++    assert add_business_days(date(2026, 11, 14), 0, [holiday]) == date(2026, 11, 17)

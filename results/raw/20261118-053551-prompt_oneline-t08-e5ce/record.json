@@ -1,0 +1,87 @@
+{
+  "run_id": "20261118-053551-prompt_oneline-t08-e5ce",
+  "ts": "2026-11-17T21:36:10+00:00",
+  "tag": "full-luna",
+  "condition": "prompt_oneline",
+  "task": "t08-cli-json",
+  "model": "gpt-6-luna",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "one_line",
+  "mode": "direct",
+  "variant": "",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 18.0,
+      "usage": {
+        "input_tokens": 78984,
+        "cached_input_tokens": 60390,
+        "cache_write_input_tokens": 18579,
+        "output_tokens": 1809,
+        "reasoning_output_tokens": 254
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 78984,
+    "cached_input_tokens": 60390,
+    "cache_write_input_tokens": 18579,
+    "output_tokens": 1809,
+    "reasoning_output_tokens": 254
+  },
+  "cost_usd": 0.00615,
+  "cost_usd_low": 0.00383,
+  "wall_s": 18.0,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_default_is_still_csv",
+      "test_empty_sales_json",
+      "test_explicit_csv",
+      "test_flag_before_file",
+      "test_json_content",
+      "test_json_layout_follows_conventions",
+      "test_unknown_format_is_a_usage_error"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "23 passed in 0.01s"
+    ]
+  },
+  "rule_followed": null,
+  "changed_files": [
+    "docs/cli.md",
+    "src/shoplib/cli.py",
+    "src/shoplib/reports.py",
+    "tests/test_cli.py",
+    "tests/test_reports.py"
+  ],
+  "out_of_scope": [
+    "src/shoplib/reports.py"
+  ],
+  "commands": 6,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  }
+}

@@ -1,0 +1,163 @@
+{
+  "run_id": "20261118-081059-review_same_buggy-t13-c6d1",
+  "ts": "2026-11-18T00:12:19+00:00",
+  "tag": "full-luna",
+  "condition": "review_same_buggy",
+  "task": "t13-fifo-costing",
+  "model": "gpt-6-luna",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "review_same",
+  "variant": "buggy",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 16.0,
+      "usage": {
+        "input_tokens": 60950,
+        "cached_input_tokens": 45100,
+        "cache_write_input_tokens": 15838,
+        "output_tokens": 1304,
+        "reasoning_output_tokens": 379
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    },
+    {
+      "status": "ok",
+      "wall_s": 62.2,
+      "usage": {
+        "input_tokens": 230088,
+        "cached_input_tokens": 189304,
+        "cache_write_input_tokens": 40748,
+        "output_tokens": 7355,
+        "reasoning_output_tokens": 3915
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 291038,
+    "cached_input_tokens": 234404,
+    "cache_write_input_tokens": 56586,
+    "output_tokens": 8659,
+    "reasoning_output_tokens": 4294
+  },
+  "cost_usd": 0.02082,
+  "cost_usd_low": 0.01375,
+  "wall_s": 78.2,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_bad_events[event0]",
+      "test_bad_events[event1]",
+      "test_bad_events[event2]",
+      "test_bad_events[event3]",
+      "test_cannot_oversell",
+      "test_events_not_modified",
+      "test_oldest_lots_first",
+      "test_receive_only",
+      "test_return_at_average_cost_half_up",
+      "test_return_is_against_most_recent_sale_only",
+      "test_return_without_sale",
+      "test_returned_units_are_sold_last",
+      "test_several_returns_against_one_sale",
+      "test_skus_are_independent",
+      "test_zero_cost_is_allowed"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "31 passed in 0.02s"
+    ]
+  },
+  "rule_followed": null,
+  "changed_files": [
+    "src/shoplib/costing.py",
+    "tests/test_costing.py"
+  ],
+  "out_of_scope": [],
+  "commands": 10,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      },
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "applied_exactly": true,
+  "before_review": {
+    "passed": [
+      "test_bad_events[event0]",
+      "test_bad_events[event1]",
+      "test_bad_events[event2]",
+      "test_bad_events[event3]",
+      "test_cannot_oversell",
+      "test_events_not_modified",
+      "test_oldest_lots_first",
+      "test_receive_only",
+      "test_return_is_against_most_recent_sale_only",
+      "test_return_without_sale",
+      "test_several_returns_against_one_sale",
+      "test_skus_are_independent",
+      "test_zero_cost_is_allowed"
+    ],
+    "failed": [
+      "test_return_at_average_cost_half_up",
+      "test_returned_units_are_sold_last"
+    ],
+    "error": null,
+    "ok": false
+  },
+  "findings": [
+    {
+      "file": "src/shoplib/costing.py",
+      "description": "Customer returns were inserted before existing lots, so they could be sold before older stock. Changed returns to append after existing lots."
+    },
+    {
+      "file": "src/shoplib/costing.py",
+      "description": "Return cost used integer division, which floors fractional average cents. It now uses round_cents for half-up rounding."
+    },
+    {
+      "file": "src/shoplib/costing.py",
+      "description": "Invalid operations raised bare ValueError instead of the required ShopError subclass. Updated the raises; ShopError remains compatible with the spec\u2019s ValueError requirement."
+    },
+    {
+      "file": "tests/test_costing.py",
+      "description": "Added regression tests for return ordering, average cost rounding, specified error cases, and most-recent-sale return limits. `python -m pytest -q`: 31 passed."
+    }
+  ],
+  "bug_signatures": {
+    "return-cost-floored": [
+      "test_return_at_average_cost_half_up"
+    ],
+    "returns-sold-first": [
+      "test_returned_units_are_sold_last"
+    ]
+  },
+  "bugs_caught": [
+    "return-cost-floored",
+    "returns-sold-first"
+  ],
+  "regressions": []
+}

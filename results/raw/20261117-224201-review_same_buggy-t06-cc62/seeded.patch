@@ -1,0 +1,24 @@
+diff --git a/src/shoplib/dates.py b/src/shoplib/dates.py
+index afe6759..4c2e5c3 100644
+--- a/src/shoplib/dates.py
++++ b/src/shoplib/dates.py
+@@ -20,10 +20,14 @@ def add_business_days(start: date, n: int, holidays=()) -> date:
+ 
+     `start` does not have to be a business day.
+     """
+-    # TODO: holidays and negative n are not handled yet
++    holidays = set(holidays)
+     day = start
+-    while n > 0:
+-        day += timedelta(days=1)
+-        if day.weekday() < 5:
+-            n -= 1
++    if n == 0:
++        return day
++    step = 1 if n > 0 else -1
++    remaining = abs(n)
++    while remaining:
++        day += timedelta(days=step)
++        if is_business_day(day, holidays if step > 0 else ()):
++            remaining -= 1
+     return day

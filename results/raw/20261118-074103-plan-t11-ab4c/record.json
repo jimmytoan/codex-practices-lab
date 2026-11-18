@@ -1,0 +1,119 @@
+{
+  "run_id": "20261118-074103-plan-t11-ab4c",
+  "ts": "2026-11-17T23:42:00+00:00",
+  "tag": "full-luna",
+  "condition": "plan",
+  "task": "t11-invoice-tax",
+  "model": "gpt-6-luna",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "plan",
+  "variant": "",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 12.0,
+      "usage": {
+        "input_tokens": 43278,
+        "cached_input_tokens": 28228,
+        "cache_write_input_tokens": 15041,
+        "output_tokens": 466,
+        "reasoning_output_tokens": 150
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    },
+    {
+      "status": "ok",
+      "wall_s": 44.2,
+      "usage": {
+        "input_tokens": 214782,
+        "cached_input_tokens": 193320,
+        "cache_write_input_tokens": 21426,
+        "output_tokens": 4616,
+        "reasoning_output_tokens": 1576
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 258060,
+    "cached_input_tokens": 221548,
+    "cache_write_input_tokens": 36467,
+    "output_tokens": 5082,
+    "reasoning_output_tokens": 1726
+  },
+  "cost_usd": 0.01388,
+  "cost_usd_low": 0.00932,
+  "wall_s": 56.2,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_coupon_capped_at_gross",
+      "test_discounts_always_add_up[101]",
+      "test_discounts_always_add_up[1234]",
+      "test_discounts_always_add_up[1]",
+      "test_discounts_always_add_up[2]",
+      "test_discounts_always_add_up[3]",
+      "test_discounts_always_add_up[997]",
+      "test_discounts_always_add_up[99]",
+      "test_equal_remainders_go_to_earlier_line",
+      "test_errors[args0]",
+      "test_errors[args1]",
+      "test_errors[args2]",
+      "test_errors[args3]",
+      "test_errors[args4]",
+      "test_errors[args5]",
+      "test_errors[args6]",
+      "test_largest_remainder_goes_to_largest_fraction_not_first_line",
+      "test_no_coupon_de",
+      "test_proportional_coupon",
+      "test_shipping_not_taxed_when_no_line_is_taxed",
+      "test_shipping_taxed_at_standard_rate",
+      "test_tax_half_up",
+      "test_tax_rounded_per_line",
+      "test_zero_gross_with_coupon"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "31 passed in 0.02s"
+    ]
+  },
+  "rule_followed": null,
+  "changed_files": [
+    "src/shoplib/invoice.py",
+    "tests/test_invoice.py"
+  ],
+  "out_of_scope": [],
+  "commands": 6,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "read-only"
+      },
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "plan_text": "1. Implement `build_invoice` validation using `ShopError` (a `ValueError` subclass), while leaving `TAX_RATES` unchanged.\n2. Calculate line gross amounts and allocate the capped coupon by largest remainder, breaking ties by input order.\n3. Compute per-line net and tax, conditional shipping tax, and the invoice total using `percent_of`.\n4. Add tests in `tests/` for allocation, tax, totals, and each specified error case; run `python -m pytest -q`.",
+  "edits_during_plan": []
+}

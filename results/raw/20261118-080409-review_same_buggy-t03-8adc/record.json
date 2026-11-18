@@ -1,0 +1,138 @@
+{
+  "run_id": "20261118-080409-review_same_buggy-t03-8adc",
+  "ts": "2026-11-18T00:05:06+00:00",
+  "tag": "full-luna",
+  "condition": "review_same_buggy",
+  "task": "t03-inventory-release",
+  "model": "gpt-6-luna",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "review_same",
+  "variant": "buggy",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 16.0,
+      "usage": {
+        "input_tokens": 43829,
+        "cached_input_tokens": 28916,
+        "cache_write_input_tokens": 14904,
+        "output_tokens": 861,
+        "reasoning_output_tokens": 321
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    },
+    {
+      "status": "ok",
+      "wall_s": 40.2,
+      "usage": {
+        "input_tokens": 183011,
+        "cached_input_tokens": 148356,
+        "cache_write_input_tokens": 34622,
+        "output_tokens": 3844,
+        "reasoning_output_tokens": 1725
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 226840,
+    "cached_input_tokens": 177272,
+    "cache_write_input_tokens": 49526,
+    "output_tokens": 4705,
+    "reasoning_output_tokens": 2046
+  },
+  "cost_usd": 0.01651,
+  "cost_usd_low": 0.01032,
+  "wall_s": 56.2,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_qty_must_be_positive[-1]",
+      "test_qty_must_be_positive[0]",
+      "test_release_all_then_reserve_again",
+      "test_release_more_than_reserved_changes_nothing",
+      "test_release_part",
+      "test_unknown_or_unreserved_sku"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "26 passed in 0.01s"
+    ]
+  },
+  "rule_followed": true,
+  "changed_files": [
+    "src/shoplib/inventory.py",
+    "tests/test_inventory.py"
+  ],
+  "out_of_scope": [],
+  "commands": 8,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      },
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "applied_exactly": true,
+  "before_review": {
+    "passed": [
+      "test_qty_must_be_positive[-1]",
+      "test_release_all_then_reserve_again",
+      "test_release_part"
+    ],
+    "failed": [
+      "test_qty_must_be_positive[0]",
+      "test_release_more_than_reserved_changes_nothing",
+      "test_unknown_or_unreserved_sku"
+    ],
+    "error": null,
+    "ok": false
+  },
+  "findings": [
+    {
+      "file": "src/shoplib/inventory.py",
+      "description": "Fixed: `release` accepted `qty == 0`, despite the docstring requiring a positive quantity. It now rejects zero and negative quantities without changing state."
+    },
+    {
+      "file": "src/shoplib/inventory.py",
+      "description": "Fixed: over-release validation compared `qty` with on-hand stock instead of reserved stock. It now compares against reserved units, including when the SKU has none, and leaves state unchanged on failure. Added regression coverage in `tests/test_inventory.py`. `python -m pytest -q`: 26 passed."
+    }
+  ],
+  "bug_signatures": {
+    "checks-on-hand": [
+      "test_release_more_than_reserved_changes_nothing",
+      "test_unknown_or_unreserved_sku"
+    ],
+    "accepts-zero": [
+      "test_qty_must_be_positive[0]"
+    ]
+  },
+  "bugs_caught": [
+    "accepts-zero",
+    "checks-on-hand"
+  ],
+  "regressions": []
+}

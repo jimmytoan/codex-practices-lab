@@ -1,0 +1,51 @@
+diff --git a/src/shoplib/dates.py b/src/shoplib/dates.py
+index afe6759..5599ebc 100644
+--- a/src/shoplib/dates.py
++++ b/src/shoplib/dates.py
+@@ -20,10 +20,15 @@ def add_business_days(start: date, n: int, holidays=()) -> date:
+ 
+     `start` does not have to be a business day.
+     """
+-    # TODO: holidays and negative n are not handled yet
++    holiday_set = set(holidays)
++    if n == 0 and is_business_day(start, holiday_set):
++        return start
++
++    direction = -1 if n < 0 else 1
++    remaining = abs(n) if n != 0 else 1
+     day = start
+-    while n > 0:
+-        day += timedelta(days=1)
+-        if day.weekday() < 5:
+-            n -= 1
++    while remaining:
++        day += timedelta(days=direction)
++        if is_business_day(day, holiday_set):
++            remaining -= 1
+     return day
+diff --git a/tests/test_dates.py b/tests/test_dates.py
+index fbfd5f2..a5b0bad 100644
+--- a/tests/test_dates.py
++++ b/tests/test_dates.py
+@@ -12,3 +12,21 @@ def test_forward_over_weekend():
+     # Friday + 1 business day = Monday
+     assert add_business_days(date(2026, 11, 13), 1) == date(2026, 11, 16)
+     assert add_business_days(date(2026, 11, 16), 3) == date(2026, 11, 19)
++
++
++def test_holidays_are_skipped():
++    holiday = date(2026, 11, 17)
++    assert add_business_days(date(2026, 11, 16), 1, holidays=[holiday]) == date(2026, 11, 18)
++
++
++def test_negative_business_days_move_strictly_before_start():
++    assert add_business_days(date(2026, 11, 16), -1) == date(2026, 11, 13)
++    holiday = date(2026, 11, 13)
++    assert add_business_days(date(2026, 11, 16), -1, holidays=[holiday]) == date(2026, 11, 12)
++
++
++def test_zero_business_days_returns_start_or_next_business_day():
++    assert add_business_days(date(2026, 11, 16), 0) == date(2026, 11, 16)
++    assert add_business_days(date(2026, 11, 15), 0) == date(2026, 11, 16)
++    holiday = date(2026, 11, 16)
++    assert add_business_days(date(2026, 11, 16), 0, holidays=[holiday]) == date(2026, 11, 17)

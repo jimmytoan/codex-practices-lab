@@ -1,0 +1,82 @@
+diff --git a/src/shoplib/cart.py b/src/shoplib/cart.py
+index 9150045..4d912d9 100644
+--- a/src/shoplib/cart.py
++++ b/src/shoplib/cart.py
+@@ -2,6 +2,9 @@
+ 
+ from dataclasses import dataclass
+ 
++from .errors import ShopError
++from .money import percent_of
++
+ 
+ @dataclass
+ class Line:
+@@ -36,9 +39,12 @@ class Cart:
+     def line_total(self, sku: str) -> int:
+         """Total for one line in cents."""
+         if sku not in self._lines:
+-            raise ValueError(f"{sku} is not in the cart")
++            raise ShopError(f"{sku} is not in the cart")
+         line = self._lines[sku]
+-        return line.unit_price_cents * line.qty
++        total = line.unit_price_cents * line.qty
++        if line.qty >= 10:
++            total -= percent_of(total, 5)
++        return total
+ 
+     def subtotal(self) -> int:
+         """Sum of all line totals in cents."""
+diff --git a/tests/test_cart.py b/tests/test_cart.py
+index 1a3d0e7..d40b226 100644
+--- a/tests/test_cart.py
++++ b/tests/test_cart.py
+@@ -1,6 +1,7 @@
+ import pytest
+ 
+ from shoplib.cart import Cart
++from shoplib.errors import ShopError
+ 
+ 
+ def test_add_and_subtotal():
+@@ -21,3 +22,40 @@ def test_add_same_sku_merges():
+ def test_bad_qty():
+     with pytest.raises(ValueError):
+         Cart().add("A", 250, 0)
++
++
++def test_bulk_discount_applies_per_line_at_quantity_threshold():
++    cart = Cart()
++    cart.add("under", 250, 9)
++    cart.add("at", 250, 10)
++    cart.add("above", 250, 11)
++
++    assert cart.line_total("under") == 2250
++    assert cart.line_total("at") == 2375
++    assert cart.line_total("above") == 2612
++    assert cart.subtotal() == 7237
++
++
++def test_bulk_discount_rounds_half_up_for_each_line():
++    cart = Cart()
++    cart.add("A", 1, 10)
++    cart.add("B", 1, 10)
++
++    assert cart.line_total("A") == 9
++    assert cart.line_total("B") == 9
++    assert cart.subtotal() == 18
++
++
++def test_adding_same_sku_can_reach_discount_threshold():
++    cart = Cart()
++    cart.add("A", 100, 9)
++    assert cart.line_total("A") == 900
++
++    cart.add("A", 100)
++    assert cart.line_total("A") == 950
++    assert cart.subtotal() == 950
++
++
++def test_line_total_for_missing_sku_raises_shop_error():
++    with pytest.raises(ShopError):
++        Cart().line_total("missing")

@@ -1,0 +1,56 @@
+diff --git a/src/shoplib/reports.py b/src/shoplib/reports.py
+index d024fdc..5bc3d69 100644
+--- a/src/shoplib/reports.py
++++ b/src/shoplib/reports.py
+@@ -21,7 +21,13 @@ def sales_summary(sales: list[dict]) -> list[dict]:
+ 
+ def to_csv(rows: list[dict]) -> str:
+     """Render summary rows as CSV, following docs/CONVENTIONS.md."""
++    def field(value: object) -> str:
++        text = str(value)
++        if any(char in text for char in ',"\r\n'):
++            return '"' + text.replace('"', '""') + '"'
++        return text
++
+     lines = [",".join(COLUMNS)]
+     for row in rows:
+-        lines.append(",".join(str(row[col]) for col in COLUMNS))
++        lines.append(",".join(field(row[col]) for col in COLUMNS))
+     return "\n".join(lines) + "\n"
+diff --git a/tests/test_reports.py b/tests/test_reports.py
+index a578302..76d1273 100644
+--- a/tests/test_reports.py
++++ b/tests/test_reports.py
+@@ -1,3 +1,6 @@
++import csv
++import io
++
+ from shoplib.reports import sales_summary, to_csv
+ 
+ SALES = [
+@@ -16,3 +19,25 @@ def test_summary():
+ 
+ def test_csv():
+     assert to_csv(sales_summary(SALES)) == "sku,name,units,revenue_cents\nA,Mug,3,1350\nB,Bowl,1,900\n"
++
++
++def test_csv_quotes_special_characters_in_every_column():
++    rows = [
++        {"sku": "A,B", "name": 'A "large" mug', "units": "1\n2", "revenue_cents": "3\r4"},
++        {"sku": '', "name": 'comma, quote" and\r\nnewline', "units": 0, "revenue_cents": None},
++    ]
++    output = to_csv(rows)
++    assert output == (
++        'sku,name,units,revenue_cents\n'
++        '"A,B","A ""large"" mug","1\n2","3\r4"\n'
++        ',"comma, quote"" and\r\nnewline",0,None\n'
++    )
++    assert list(csv.reader(io.StringIO(output, newline=""))) == [
++        ["sku", "name", "units", "revenue_cents"],
++        ["A,B", 'A "large" mug', "1\n2", "3\r4"],
++        ["", 'comma, quote" and\r\nnewline', "0", "None"],
++    ]
++
++
++def test_csv_empty_rows_keeps_header():
++    assert to_csv([]) == "sku,name,units,revenue_cents\n"

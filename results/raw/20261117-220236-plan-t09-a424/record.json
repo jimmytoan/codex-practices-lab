@@ -1,0 +1,104 @@
+{
+  "run_id": "20261117-220236-plan-t09-a424",
+  "ts": "2026-11-17T14:03:37+00:00",
+  "tag": "full-terra",
+  "condition": "plan",
+  "task": "t09-slug-accents",
+  "model": "gpt-6.1-terra",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "plan",
+  "variant": "",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 16.0,
+      "usage": {
+        "input_tokens": 29248,
+        "cached_input_tokens": 14138,
+        "cache_write_input_tokens": 15104,
+        "output_tokens": 348,
+        "reasoning_output_tokens": 115
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    },
+    {
+      "status": "ok",
+      "wall_s": 44.1,
+      "usage": {
+        "input_tokens": 97299,
+        "cached_input_tokens": 78721,
+        "cache_write_input_tokens": 18560,
+        "output_tokens": 1868,
+        "reasoning_output_tokens": 614
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 126547,
+    "cached_input_tokens": 92859,
+    "cache_write_input_tokens": 33664,
+    "output_tokens": 2216,
+    "reasoning_output_tokens": 729
+  },
+  "cost_usd": 0.09991,
+  "cost_usd_low": 0.05783,
+  "wall_s": 60.1,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_accents[Caf\\xe9\\u2014au lait-cafe-au-lait]",
+      "test_accents[Cr\\xe8me Br\\xfbl\\xe9e-creme-brulee]",
+      "test_accents[Se\\xf1or Pi\\xf1ata-senor-pinata]",
+      "test_accents[\\u017dlu\\u0165ou\\u010dk\\xfd k\\u016f\\u0148-zlutoucky-kun]",
+      "test_accents[\\xc5NGSTR\\xd6M unit-angstrom-unit]",
+      "test_cut_never_leaves_trailing_dash",
+      "test_empty",
+      "test_max_len_counts_after_transliteration",
+      "test_plain_names_unchanged"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "31 passed in 0.02s"
+    ]
+  },
+  "rule_followed": null,
+  "changed_files": [
+    "src/shoplib/textutil.py",
+    "tests/test_textutil.py"
+  ],
+  "out_of_scope": [],
+  "commands": 8,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6.1-terra",
+        "effort": "medium",
+        "sandbox": "read-only"
+      },
+      {
+        "model": "gpt-6.1-terra",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "plan_text": "1. Normalize accented Latin letters before applying the existing slug rules.\n2. Validate `max_len` as at least 3 with `ShopError`, so the `n-a` fallback always fits.\n3. Add tests for accents, separators, truncation, fallback, and length boundaries; run `python -m pytest -q`.",
+  "edits_during_plan": []
+}

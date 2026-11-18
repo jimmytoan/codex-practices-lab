@@ -1,0 +1,88 @@
+{
+  "run_id": "20261118-034439-rule_late-t07-024d",
+  "ts": "2026-11-17T19:45:32+00:00",
+  "tag": "full-luna",
+  "condition": "rule_late",
+  "task": "t07-coupon-stacking",
+  "model": "gpt-6-luna",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "rule_late",
+  "prompt": "four_part",
+  "mode": "direct",
+  "variant": "",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 52.2,
+      "usage": {
+        "input_tokens": 222491,
+        "cached_input_tokens": 194408,
+        "cache_write_input_tokens": 28056,
+        "output_tokens": 3929,
+        "reasoning_output_tokens": 1517
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 222491,
+    "cached_input_tokens": 194408,
+    "cache_write_input_tokens": 28056,
+    "output_tokens": 3929,
+    "reasoning_output_tokens": 1517
+  },
+  "cost_usd": 0.01093,
+  "cost_usd_low": 0.00742,
+  "wall_s": 52.2,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_all_fixed_apply",
+      "test_expired_best_percent_falls_back_to_next",
+      "test_expired_ignored_but_today_is_valid",
+      "test_minimum_not_met",
+      "test_minimum_uses_original_subtotal",
+      "test_negative_subtotal",
+      "test_never_below_zero_and_codes_still_listed",
+      "test_no_coupons",
+      "test_only_best_percent_applies",
+      "test_percent_rounds_half_up",
+      "test_percent_then_fixed",
+      "test_percent_tie_takes_first_code",
+      "test_zero_subtotal"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "26 passed in 0.02s"
+    ]
+  },
+  "rule_followed": false,
+  "changed_files": [
+    "src/shoplib/discounts.py",
+    "tests/test_discounts.py"
+  ],
+  "out_of_scope": [],
+  "commands": 5,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 32768,
+    "agents_loaded_text_tail": " code.\n\n#### 0.2.7\n- Document textutil: the public API notes (SHOP-988). Prefer plain data structures over clever classes.\n- Clarify shipping: docstrings (SHOP-308). Keep pull requests small enough to",
+    "turns": [
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": false
+  }
+}

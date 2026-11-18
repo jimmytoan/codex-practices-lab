@@ -1,0 +1,158 @@
+{
+  "run_id": "20261118-044723-review_same_clean-t13-f330",
+  "ts": "2026-11-17T20:49:03+00:00",
+  "tag": "full-luna",
+  "condition": "review_same_clean",
+  "task": "t13-fifo-costing",
+  "model": "gpt-6-luna",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "review_same",
+  "variant": "clean",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 14.0,
+      "usage": {
+        "input_tokens": 30210,
+        "cached_input_tokens": 14567,
+        "cache_write_input_tokens": 15637,
+        "output_tokens": 1528,
+        "reasoning_output_tokens": 642
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    },
+    {
+      "status": "ok",
+      "wall_s": 84.3,
+      "usage": {
+        "input_tokens": 278808,
+        "cached_input_tokens": 233998,
+        "cache_write_input_tokens": 44771,
+        "output_tokens": 10640,
+        "reasoning_output_tokens": 6620
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 309018,
+    "cached_input_tokens": 248565,
+    "cache_write_input_tokens": 60408,
+    "output_tokens": 12168,
+    "reasoning_output_tokens": 7262
+  },
+  "cost_usd": 0.02368,
+  "cost_usd_low": 0.01613,
+  "wall_s": 98.3,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_bad_events[event0]",
+      "test_bad_events[event1]",
+      "test_bad_events[event2]",
+      "test_bad_events[event3]",
+      "test_cannot_oversell",
+      "test_events_not_modified",
+      "test_oldest_lots_first",
+      "test_receive_only",
+      "test_return_at_average_cost_half_up",
+      "test_return_is_against_most_recent_sale_only",
+      "test_return_without_sale",
+      "test_returned_units_are_sold_last",
+      "test_several_returns_against_one_sale",
+      "test_skus_are_independent",
+      "test_zero_cost_is_allowed"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "33 passed in 0.02s"
+    ]
+  },
+  "rule_followed": null,
+  "changed_files": [
+    "src/shoplib/costing.py",
+    "tests/test_costing.py"
+  ],
+  "out_of_scope": [],
+  "commands": 9,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      },
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "applied_exactly": true,
+  "before_review": {
+    "passed": [
+      "test_bad_events[event0]",
+      "test_bad_events[event1]",
+      "test_bad_events[event2]",
+      "test_bad_events[event3]",
+      "test_cannot_oversell",
+      "test_events_not_modified",
+      "test_oldest_lots_first",
+      "test_receive_only",
+      "test_return_at_average_cost_half_up",
+      "test_return_is_against_most_recent_sale_only",
+      "test_return_without_sale",
+      "test_returned_units_are_sold_last",
+      "test_several_returns_against_one_sale",
+      "test_skus_are_independent",
+      "test_zero_cost_is_allowed"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "findings": [
+    {
+      "file": "src/shoplib/costing.py",
+      "description": "Return average calculation used the default Decimal precision, which can misround large half-cent ties or fail when quantizing large amounts. Added sufficient local precision; regression coverage passes."
+    },
+    {
+      "file": "src/shoplib/costing.py",
+      "description": "Documented error paths raised bare ValueError, contrary to the repository instruction to use ShopError. Updated them to raise ShopError, which remains a ValueError subclass."
+    },
+    {
+      "file": "tests/test_costing.py",
+      "description": "Added FIFO, return ordering and rounding, return limits, error cases, and input immutability coverage. `python -m pytest -q`: 33 passed."
+    }
+  ],
+  "bug_signatures": {
+    "return-cost-floored": [
+      "test_return_at_average_cost_half_up"
+    ],
+    "returns-sold-first": [
+      "test_returned_units_are_sold_last"
+    ]
+  },
+  "bugs_caught": [
+    "return-cost-floored",
+    "returns-sold-first"
+  ],
+  "regressions": []
+}

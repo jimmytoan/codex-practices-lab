@@ -1,0 +1,219 @@
+diff --git a/src/shoplib/search.py b/src/shoplib/search.py
+index 2c1a324..3a74b8a 100644
+--- a/src/shoplib/search.py
++++ b/src/shoplib/search.py
+@@ -1,6 +1,11 @@
+ """Product search. See docs/search.md."""
+ 
+ from dataclasses import dataclass, field
++import operator
++import re
++from collections.abc import Callable
++
++from shoplib.errors import ShopError
+ 
+ 
+ @dataclass
+@@ -13,4 +18,90 @@ class Product:
+ 
+ def search(products: list[Product], query: str) -> list[Product]:
+     """The products that match `query`, in their input order. See docs/search.md."""
+-    raise NotImplementedError
++    predicates = [_parse_term(term) for term in _tokenize(query)]
++    return [product for product in products if all(test(product) for test in predicates)]
++
++
++def _tokenize(query: str) -> list[str]:
++    terms = []
++    chars = []
++    quoted = False
++    started = False
++    for char in query:
++        if char == '"':
++            quoted = not quoted
++            started = True
++        elif char.isspace() and not quoted:
++            if started:
++                terms.append(''.join(chars))
++                chars = []
++                started = False
++        else:
++            chars.append(char)
++            started = True
++    if quoted:
++        raise ShopError("unclosed quote")
++    if started:
++        terms.append(''.join(chars))
++    return terms
++
++
++_PRICE_OPERATORS = {
++    '<': operator.lt,
++    '<=': operator.le,
++    '>': operator.gt,
++    '>=': operator.ge,
++    '=': operator.eq,
++}
++_PRICE_TERM = re.compile(r'price(<=|>=|<|>|=)(.*)', re.DOTALL)
++
++
++def _parse_term(term: str) -> Callable[[Product], bool]:
++    negated = term.startswith('-')
++    if negated:
++        term = term[1:]
++        if not term:
++            raise ShopError("empty negated term")
++
++    price = _PRICE_TERM.fullmatch(term)
++    if price:
++        comparison, value = price.groups()
++        if not value.isdecimal():
++            raise ShopError("invalid price")
++        # Parse in chunks so valid long numbers are not limited by int's
++        # string conversion limit.
++        cents = 0
++        for start in range(0, len(value), 9):
++            chunk = value[start:start + 9]
++            cents = cents * 10 ** len(chunk) + int(chunk)
++        compare = _PRICE_OPERATORS[comparison]
++        predicate = lambda product: compare(product.price_cents, cents)
++    elif ':' in term:
++        field_name, value = term.split(':', 1)
++        if field_name not in ('sku', 'name', 'tag'):
++            raise ShopError("unknown search field")
++        if not value:
++            raise ShopError("empty field value")
++        value = value.casefold()
++        if field_name == 'name':
++            predicate = lambda product: value in product.name.casefold()
++        else:
++            prefix = value.endswith('*')
++            if prefix:
++                value = value[:-1]
++
++            def matches(text: str) -> bool:
++                text = text.casefold()
++                return text.startswith(value) if prefix else text == value
++
++            if field_name == 'sku':
++                predicate = lambda product: matches(product.sku)
++            else:
++                predicate = lambda product: any(matches(tag) for tag in product.tags)
++    else:
++        value = term.casefold()
++        predicate = lambda product: value in product.name.casefold()
++
++    if negated:
++        return lambda product: not predicate(product)
++    return predicate
+diff --git a/tests/test_search.py b/tests/test_search.py
+new file mode 100644
+index 0000000..4e6f269
+--- /dev/null
++++ b/tests/test_search.py
+@@ -0,0 +1,105 @@
++import pytest
++
++from shoplib.errors import ShopError
++from shoplib.search import Product, search
++
++
++@pytest.fixture
++def products():
++    return [
++        Product('MUG-Blue', 'Big Blue Mug', 1000, ['Sale', 'Kitchenware']),
++        Product('MUG-RED', 'Small red mug', 999, ['kitchen', 'Gift']),
++        Product('PLATE-1', 'Blue plate', 1500, ['SALE']),
++        Product('MUG-*', 'Mug * special', 0),
++    ]
++
++
++@pytest.mark.parametrize('query', ['', '  \t\n  ', '""'])
++def test_empty_queries_match_all_in_input_order(products, query):
++    assert search(products, query) == products
++    assert search(products, query) is not products
++
++
++@pytest.mark.parametrize(
++    ('query', 'indices'),
++    [
++        ('MuG', [0, 1, 3]),
++        ('"blue mug"', [0]),
++        ('name:"BLUE MUG"', [0]),
++        ('"small red" mug', [1]),
++        ('name:bl"ue m"ug', [0]),
++        ('sku:mug-blue', [0]),
++        ('sku:mug', []),
++        ('tag:sAlE', [0, 2]),
++        ('tag:kit', []),
++        ('name:BLUE', [0, 2]),
++        ('sku:mug-*', [0, 1, 3]),
++        ('tag:KITCHEN*', [0, 1]),
++        ('sku:MUG-*x', []),
++        ('sku:MUG-**', [3]),
++        ('name:*', [3]),
++        ('tag:*', [0, 1, 2]),
++        ('sku:*', [0, 1, 2, 3]),
++        ('blue -tag:sale', []),
++        ('mug -tag:sale', [1, 3]),
++        ('-"blue mug"', [1, 2, 3]),
++        ('-sku:mug-*', [2]),
++        ('mug\tname:"red mug"\nprice<1000', [1]),
++    ],
++)
++def test_terms_and_combinations(products, query, indices):
++    assert search(products, query) == [products[i] for i in indices]
++
++
++@pytest.mark.parametrize(
++    ('query', 'indices'),
++    [
++        ('price<1000', [1, 3]),
++        ('price<=1000', [0, 1, 3]),
++        ('price>1000', [2]),
++        ('price>=1000', [0, 2]),
++        ('price=1000', [0]),
++        ('price=0000', [3]),
++        ('-price>=1000', [1, 3]),
++        ('price<999999999999999999999999999999999999', [0, 1, 2, 3]),
++    ],
++)
++def test_price_comparisons(products, query, indices):
++    assert search(products, query) == [products[i] for i in indices]
++
++
++def test_very_large_whole_price_is_valid(products):
++    assert search(products, 'price<' + '9' * 5000) == products
++
++
++def test_casefold_and_quoted_whitespace():
++    product = Product('STRASSE', 'Straße\nMug', 1, ['GRÜN'])
++    assert search([product], 'sku:straße tag:grün name:"STRASSE\nMUG"') == [product]
++
++
++def test_literal_stars_and_colons_in_values():
++    product = Product('A*B', 'pricey: mug', 1, ['A*B', 'two:parts'])
++    assert search([product], 'sku:A*B tag:A*B tag:"two:parts" name:"pricey:"') == [product]
++    assert search([product], 'sku:A*') == [product]
++    assert search([product], 'pricey') == [product]
++
++
++@pytest.mark.parametrize(
++    'query',
++    [
++        'color:blue', 'price:5', 'SKU:foo', ':foo',
++        'sku:', 'tag:', 'name:', 'tag:""', '-name:',
++        '-', '-""',
++        '"unclosed', 'name:"unclosed', '-"unclosed',
++        'price=', 'price<', 'price>abc', 'price<=1.5', 'price>=-1',
++        'price=+1', 'price==1', 'price><1', 'price=1x', 'price="1 0"',
++    ],
++)
++def test_invalid_queries_raise_shop_error_even_with_no_products(query):
++    with pytest.raises(ShopError):
++        search([], query)
++
++
++def test_invalid_later_term_is_not_hidden_by_a_nonmatching_term(products):
++    with pytest.raises(ShopError):
++        search(products, 'no-such-product tag:')

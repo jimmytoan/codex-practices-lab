@@ -1,0 +1,68 @@
+diff --git a/src/shoplib/textutil.py b/src/shoplib/textutil.py
+index 061dc23..4eee1be 100644
+--- a/src/shoplib/textutil.py
++++ b/src/shoplib/textutil.py
+@@ -1,6 +1,9 @@
+ """Text helpers for URLs and listings."""
+ 
+ import re
++import unicodedata
++
++from shoplib.errors import ShopError
+ 
+ 
+ def slugify(text: str, max_len: int = 40) -> str:
+@@ -13,8 +16,18 @@ def slugify(text: str, max_len: int = 40) -> str:
+     - At most `max_len` characters, cut after the other steps; a cut never
+       leaves a trailing '-'.
+     - If nothing is left, the slug is 'n-a'.
++    - `max_len` must be at least 3 so the fallback also fits.
+     """
+-    slug = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
++    if not isinstance(max_len, int) or max_len < 3:
++        raise ShopError("max_len must be an integer of at least 3")
++
++    normalized = unicodedata.normalize("NFD", text.lower())
++    unaccented = "".join(
++        character
++        for character in normalized
++        if not unicodedata.combining(character)
++    )
++    slug = re.sub(r"[^a-z0-9]+", "-", unaccented).strip("-")
+     slug = slug[:max_len].rstrip("-")
+     return slug or "n-a"
+ 
+diff --git a/tests/test_textutil.py b/tests/test_textutil.py
+index 4c83bb9..a1b6341 100644
+--- a/tests/test_textutil.py
++++ b/tests/test_textutil.py
+@@ -1,3 +1,6 @@
++import pytest
++
++from shoplib.errors import ShopError
+ from shoplib.textutil import slugify, truncate
+ 
+ 
+@@ -6,6 +9,22 @@ def test_slugify_basic():
+     assert slugify("!!!") == "n-a"
+ 
+ 
++def test_slugify_transliterates_accented_latin_letters():
++    assert slugify("Crème Brûlée") == "creme-brulee"
++    assert slugify("NAÏVE façade") == "naive-facade"
++
++
++def test_slugify_truncates_after_normalizing_without_trailing_hyphen():
++    assert slugify("Crème Brûlée", max_len=7) == "creme-b"
++    assert slugify("Blue Mug", max_len=5) == "blue"
++
++
++@pytest.mark.parametrize("max_len", [0, 1, 2, 2.5, "3"])
++def test_slugify_requires_max_len_that_can_fit_fallback(max_len):
++    with pytest.raises(ShopError):
++        slugify("!!!", max_len=max_len)
++
++
+ def test_truncate():
+     assert truncate("hello world", 8) == "hello..."
+     assert truncate("short", 8) == "short"

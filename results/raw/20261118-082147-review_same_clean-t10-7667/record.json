@@ -1,0 +1,152 @@
+{
+  "run_id": "20261118-082147-review_same_clean-t10-7667",
+  "ts": "2026-11-18T00:23:33+00:00",
+  "tag": "full-luna",
+  "condition": "review_same_clean",
+  "task": "t10-split-parcels",
+  "model": "gpt-6-luna",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "review_same",
+  "variant": "clean",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 14.0,
+      "usage": {
+        "input_tokens": 61109,
+        "cached_input_tokens": 45052,
+        "cache_write_input_tokens": 16045,
+        "output_tokens": 1112,
+        "reasoning_output_tokens": 220
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    },
+    {
+      "status": "ok",
+      "wall_s": 90.3,
+      "usage": {
+        "input_tokens": 316761,
+        "cached_input_tokens": 272142,
+        "cache_write_input_tokens": 44574,
+        "output_tokens": 10419,
+        "reasoning_output_tokens": 6903
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 377870,
+    "cached_input_tokens": 317194,
+    "cache_write_input_tokens": 60619,
+    "output_tokens": 11531,
+    "reasoning_output_tokens": 7123
+  },
+  "cost_usd": 0.0241,
+  "cost_usd_low": 0.01652,
+  "wall_s": 104.3,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_bad_item[item0]",
+      "test_bad_item[item1]",
+      "test_bad_item[item2]",
+      "test_bad_item[item3]",
+      "test_empty",
+      "test_exact_fit_is_allowed",
+      "test_first_fit_not_best_fit",
+      "test_heaviest_first_and_first_fit",
+      "test_input_not_mutated",
+      "test_later_small_unit_fills_earlier_parcel",
+      "test_shipment_cost",
+      "test_single_parcel",
+      "test_ties_ordered_by_sku",
+      "test_unit_too_heavy"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "29 passed in 0.01s"
+    ]
+  },
+  "rule_followed": true,
+  "changed_files": [
+    "src/shoplib/shipping.py",
+    "tests/test_shipping.py"
+  ],
+  "out_of_scope": [],
+  "commands": 9,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      },
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "applied_exactly": true,
+  "before_review": {
+    "passed": [
+      "test_bad_item[item0]",
+      "test_bad_item[item1]",
+      "test_bad_item[item2]",
+      "test_bad_item[item3]",
+      "test_empty",
+      "test_exact_fit_is_allowed",
+      "test_first_fit_not_best_fit",
+      "test_heaviest_first_and_first_fit",
+      "test_input_not_mutated",
+      "test_later_small_unit_fills_earlier_parcel",
+      "test_shipment_cost",
+      "test_single_parcel",
+      "test_ties_ordered_by_sku",
+      "test_unit_too_heavy"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "findings": [
+    {
+      "file": "src/shoplib/shipping.py",
+      "description": "Fixed a tier-boundary overcharge in shipment_cost: the unchanged shipping_cost uses strict comparisons, so shipment_cost now applies the documented inclusive tiers. Added tests for parcel order, validation errors, and all tier boundaries. `python -m pytest -q`: 29 passed."
+    }
+  ],
+  "bug_signatures": {
+    "exact-fit-rejected": [
+      "test_exact_fit_is_allowed",
+      "test_first_fit_not_best_fit",
+      "test_later_small_unit_fills_earlier_parcel",
+      "test_shipment_cost",
+      "test_ties_ordered_by_sku"
+    ],
+    "accepts-zero-qty": [
+      "test_bad_item[item0]"
+    ]
+  },
+  "bugs_caught": [
+    "accepts-zero-qty",
+    "exact-fit-rejected"
+  ],
+  "regressions": []
+}

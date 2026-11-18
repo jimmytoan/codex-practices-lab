@@ -1,0 +1,103 @@
+{
+  "run_id": "20261118-054407-plan-t05-7608",
+  "ts": "2026-11-17T21:44:30+00:00",
+  "tag": "full-luna",
+  "condition": "plan",
+  "task": "t05-csv-quoting",
+  "model": "gpt-6-luna",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "plan",
+  "variant": "",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 8.0,
+      "usage": {
+        "input_tokens": 42549,
+        "cached_input_tokens": 27859,
+        "cache_write_input_tokens": 14681,
+        "output_tokens": 401,
+        "reasoning_output_tokens": 87
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    },
+    {
+      "status": "ok",
+      "wall_s": 14.0,
+      "usage": {
+        "input_tokens": 107069,
+        "cached_input_tokens": 90205,
+        "cache_write_input_tokens": 16843,
+        "output_tokens": 1512,
+        "reasoning_output_tokens": 310
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 149618,
+    "cached_input_tokens": 118064,
+    "cache_write_input_tokens": 31524,
+    "output_tokens": 1913,
+    "reasoning_output_tokens": 397
+  },
+  "cost_usd": 0.01002,
+  "cost_usd_low": 0.00608,
+  "wall_s": 22.0,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_comma_is_quoted",
+      "test_empty_rows_still_has_header",
+      "test_newline_in_field",
+      "test_no_carriage_returns",
+      "test_plain_rows_are_unchanged",
+      "test_quote_is_doubled",
+      "test_round_trip",
+      "test_sku_with_comma_is_quoted_too"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "22 passed in 0.01s"
+    ]
+  },
+  "rule_followed": null,
+  "changed_files": [
+    "src/shoplib/reports.py",
+    "tests/test_reports.py"
+  ],
+  "out_of_scope": [],
+  "commands": 4,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "read-only"
+      },
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "plan_text": "1. Update `to_csv` in `src/shoplib/reports.py` to quote fields containing a comma, double quote, or newline, and double any quotes inside quoted fields.\n2. Add focused cases in `tests/test_reports.py` for each special character, while keeping the existing plain-value output assertion.\n3. Run `python -m pytest -q` and confirm it passes.",
+  "edits_during_plan": []
+}

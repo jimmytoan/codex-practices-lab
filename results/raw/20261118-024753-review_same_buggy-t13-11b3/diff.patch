@@ -1,0 +1,157 @@
+diff --git a/src/shoplib/costing.py b/src/shoplib/costing.py
+index 5e8c27e..a59454f 100644
+--- a/src/shoplib/costing.py
++++ b/src/shoplib/costing.py
+@@ -1,6 +1,52 @@
+ """Cost of goods sold with FIFO lots. See docs/costing.md."""
+ 
++from decimal import Decimal, localcontext
++
++from .errors import ShopError
++from .money import round_cents
++
+ 
+ def fifo_costing(events: list[dict]) -> dict:
+     """Process stock events and report cost per SKU. See docs/costing.md."""
+-    raise NotImplementedError
++    lots: dict[str, list[list[int]]] = {}
++    cogs: dict[str, int] = {}
++    last_sale: dict[str, dict] = {}
++    for ev in events:
++        kind, sku, qty = ev["type"], ev["sku"], ev["qty"]
++        if qty < 1:
++            raise ShopError("qty must be at least 1")
++        lots.setdefault(sku, [])
++        cogs.setdefault(sku, 0)
++        if kind == "receive":
++            if ev["unit_cost_cents"] < 0:
++                raise ShopError("unit cost must not be negative")
++            lots[sku].append([qty, ev["unit_cost_cents"]])
++        elif kind == "sell":
++            if qty > sum(q for q, _ in lots[sku]):
++                raise ShopError(f"not enough {sku} on hand")
++            need, cost = qty, 0
++            while need:
++                lot = lots[sku][0]
++                take = min(need, lot[0])
++                cost += take * lot[1]
++                lot[0] -= take
++                need -= take
++                if lot[0] == 0:
++                    lots[sku].pop(0)
++            cogs[sku] += cost
++            last_sale[sku] = {"qty": qty, "cost": cost, "returned": 0}
++        elif kind == "return":
++            sale = last_sale.get(sku)
++            if sale is None or qty > sale["qty"] - sale["returned"]:
++                raise ShopError(f"cannot return {qty} of {sku}")
++            # Preserve enough precision to round correctly even for large integers.
++            with localcontext() as context:
++                context.prec = max(28, sale["cost"].bit_length() + sale["qty"].bit_length() + 2)
++                unit = round_cents(Decimal(sale["cost"]) / sale["qty"])
++            sale["returned"] += qty
++            lots[sku].append([qty, unit])
++            cogs[sku] -= qty * unit
++        else:
++            raise ShopError(f"unknown event type {kind!r}")
++    return {sku: {"cogs_cents": cogs[sku], "on_hand": sum(q for q, _ in lots[sku]),
++                  "value_cents": sum(q * c for q, c in lots[sku])} for sku in lots}
+diff --git a/tests/test_costing.py b/tests/test_costing.py
+new file mode 100644
+index 0000000..fc9bfe9
+--- /dev/null
++++ b/tests/test_costing.py
+@@ -0,0 +1,93 @@
++from copy import deepcopy
++
++import pytest
++
++from shoplib.costing import fifo_costing
++from shoplib.errors import ShopError
++
++
++def receive(sku, qty, cost):
++    return {"type": "receive", "sku": sku, "qty": qty, "unit_cost_cents": cost}
++
++
++def event(kind, sku, qty):
++    return {"type": kind, "sku": sku, "qty": qty}
++
++
++def test_fifo_for_multiple_skus_and_input_is_unchanged():
++    events = [receive("A", 2, 100), receive("B", 1, 50), receive("A", 2, 200),
++              event("sell", "A", 3)]
++    original = deepcopy(events)
++    assert fifo_costing(events) == {
++        "A": {"cogs_cents": 400, "on_hand": 1, "value_cents": 200},
++        "B": {"cogs_cents": 0, "on_hand": 1, "value_cents": 50},
++    }
++    assert events == original
++    assert fifo_costing([]) == {}
++
++
++@pytest.mark.parametrize(("costs", "returned_cost"), [((100, 101), 101), ((100, 100, 101), 100)])
++def test_returns_use_rounded_average_of_sale(costs, returned_cost):
++    events = [receive("A", 1, cost) for cost in costs]
++    events += [event("sell", "A", len(costs)), event("return", "A", 1)]
++    assert fifo_costing(events)["A"] == {
++        "cogs_cents": sum(costs) - returned_cost,
++        "on_hand": 1,
++        "value_cents": returned_cost,
++    }
++
++
++def test_return_is_sold_after_existing_lots():
++    events = [receive("A", 2, 100), event("sell", "A", 1), receive("A", 1, 300),
++              event("return", "A", 1), event("sell", "A", 2)]
++    assert fifo_costing(events)["A"] == {
++        "cogs_cents": 400, "on_hand": 1, "value_cents": 100,
++    }
++
++
++def test_multiple_returns_and_most_recent_sale_are_per_sku():
++    events = [receive("A", 4, 100), receive("B", 1, 40), event("sell", "A", 2),
++              event("sell", "B", 1), event("return", "A", 1), event("return", "A", 1),
++              event("sell", "A", 1), event("return", "A", 1), event("return", "B", 1)]
++    assert fifo_costing(events) == {
++        "A": {"cogs_cents": 0, "on_hand": 4, "value_cents": 400},
++        "B": {"cogs_cents": 0, "on_hand": 1, "value_cents": 40},
++    }
++
++
++def test_return_average_preserves_large_integer_precision():
++    cost = 10 ** 35
++    events = [receive("A", 1, cost), receive("A", 1, cost + 1),
++              event("sell", "A", 2), event("return", "A", 1)]
++    assert fifo_costing(events)["A"] == {
++        "cogs_cents": cost, "on_hand": 1, "value_cents": cost + 1,
++    }
++
++
++def test_return_average_just_below_half_with_large_quantity():
++    qty = 10 ** 35
++    events = [receive("A", qty // 2 - 1, 1), receive("A", qty // 2 + 1, 0),
++              event("sell", "A", qty), event("return", "A", 1)]
++    assert fifo_costing(events)["A"] == {
++        "cogs_cents": qty // 2 - 1, "on_hand": 1, "value_cents": 0,
++    }
++
++
++@pytest.mark.parametrize("events", [
++    [receive("A", 0, 10)],
++    [event("sell", "A", -1)],
++    [event("return", "A", 0)],
++    [receive("A", 1, -1)],
++    [receive("A", 1, 10), event("sell", "A", 2)],
++    [receive("A", 1, 10), event("return", "A", 1)],
++    [receive("A", 2, 10), event("sell", "A", 2), event("return", "A", 1),
++     event("return", "A", 2)],
++    [receive("A", 3, 10), event("sell", "A", 2), event("sell", "A", 1),
++     event("return", "A", 2)],
++    [event("unknown", "A", 1)],
++])
++def test_invalid_events_raise_shop_error_without_changing_input(events):
++    original = deepcopy(events)
++    with pytest.raises(ShopError):
++        fifo_costing(events)
++    assert events == original

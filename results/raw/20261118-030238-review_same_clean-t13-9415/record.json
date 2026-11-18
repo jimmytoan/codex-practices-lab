@@ -1,0 +1,154 @@
+{
+  "run_id": "20261118-030238-review_same_clean-t13-9415",
+  "ts": "2026-11-17T19:04:05+00:00",
+  "tag": "full-terra",
+  "condition": "review_same_clean",
+  "task": "t13-fifo-costing",
+  "model": "gpt-6.1-terra",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "review_same",
+  "variant": "clean",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 28.1,
+      "usage": {
+        "input_tokens": 82730,
+        "cached_input_tokens": 65015,
+        "cache_write_input_tokens": 17700,
+        "output_tokens": 1189,
+        "reasoning_output_tokens": 135
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    },
+    {
+      "status": "ok",
+      "wall_s": 58.2,
+      "usage": {
+        "input_tokens": 187844,
+        "cached_input_tokens": 147062,
+        "cache_write_input_tokens": 40752,
+        "output_tokens": 4811,
+        "reasoning_output_tokens": 1531
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 270574,
+    "cached_input_tokens": 212077,
+    "cache_write_input_tokens": 58452,
+    "output_tokens": 6000,
+    "reasoning_output_tokens": 1666
+  },
+  "cost_usd": 0.18678,
+  "cost_usd_low": 0.11371,
+  "wall_s": 86.3,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_bad_events[event0]",
+      "test_bad_events[event1]",
+      "test_bad_events[event2]",
+      "test_bad_events[event3]",
+      "test_cannot_oversell",
+      "test_events_not_modified",
+      "test_oldest_lots_first",
+      "test_receive_only",
+      "test_return_at_average_cost_half_up",
+      "test_return_is_against_most_recent_sale_only",
+      "test_return_without_sale",
+      "test_returned_units_are_sold_last",
+      "test_several_returns_against_one_sale",
+      "test_skus_are_independent",
+      "test_zero_cost_is_allowed"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "34 passed in 0.02s"
+    ]
+  },
+  "rule_followed": null,
+  "changed_files": [
+    "src/shoplib/costing.py",
+    "tests/test_costing.py"
+  ],
+  "out_of_scope": [],
+  "commands": 10,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6.1-terra",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      },
+      {
+        "model": "gpt-6.1-terra",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "applied_exactly": true,
+  "before_review": {
+    "passed": [
+      "test_bad_events[event0]",
+      "test_bad_events[event1]",
+      "test_bad_events[event2]",
+      "test_bad_events[event3]",
+      "test_cannot_oversell",
+      "test_events_not_modified",
+      "test_oldest_lots_first",
+      "test_receive_only",
+      "test_return_at_average_cost_half_up",
+      "test_return_is_against_most_recent_sale_only",
+      "test_return_without_sale",
+      "test_returned_units_are_sold_last",
+      "test_several_returns_against_one_sale",
+      "test_skus_are_independent",
+      "test_zero_cost_is_allowed"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "findings": [
+    {
+      "file": "src/shoplib/costing.py",
+      "description": "Invalid operations raised ValueError instead of ShopError. Fixed."
+    },
+    {
+      "file": "src/shoplib/costing.py",
+      "description": "Decimal precision could misprice large returns or raise an exception. Fixed. All 34 tests pass."
+    }
+  ],
+  "bug_signatures": {
+    "return-cost-floored": [
+      "test_return_at_average_cost_half_up"
+    ],
+    "returns-sold-first": [
+      "test_returned_units_are_sold_last"
+    ]
+  },
+  "bugs_caught": [
+    "return-cost-floored",
+    "returns-sold-first"
+  ],
+  "regressions": []
+}

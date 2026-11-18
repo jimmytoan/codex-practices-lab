@@ -1,0 +1,135 @@
+diff --git a/src/shoplib/inventory.py b/src/shoplib/inventory.py
+index 69cd1dc..69300ac 100644
+--- a/src/shoplib/inventory.py
++++ b/src/shoplib/inventory.py
+@@ -1,5 +1,7 @@
+ """Stock levels: on hand, reserved for orders, and available."""
+ 
++from .errors import ShopError
++
+ 
+ class Inventory:
+     def __init__(self):
+@@ -32,10 +34,14 @@ class Inventory:
+         """Give `qty` reserved units back to available.
+ 
+         `qty` must be positive. Releasing more than is currently reserved for
+-        the SKU (including a SKU with nothing reserved) raises ValueError and
++        the SKU (including a SKU with nothing reserved) raises ShopError and
+         changes nothing.
+         """
+-        raise NotImplementedError
++        if qty <= 0:
++            raise ShopError("qty must be positive")
++        if qty > self.reserved(sku):
++            raise ShopError(f"only {self.reserved(sku)} of {sku} reserved")
++        self._reserved[sku] -= qty
+ 
+     def ship(self, sku: str, qty: int) -> None:
+         """Ship `qty` reserved units: they leave both reserved and on hand."""
+diff --git a/src/shoplib/orders.py b/src/shoplib/orders.py
+index 8edb164..2cd587a 100644
+--- a/src/shoplib/orders.py
++++ b/src/shoplib/orders.py
+@@ -1,5 +1,6 @@
+ """Orders and their life cycle. See docs/order-states.md."""
+ 
++from .errors import ShopError
+ from .inventory import Inventory
+ 
+ NEW = "NEW"
+@@ -46,3 +47,24 @@ class Order:
+ 
+     def deliver(self) -> None:
+         self._transition((SHIPPED,), DELIVERED)
++
++    def cancel(self) -> None:
++        """Cancel an unshipped order and release its reserved stock."""
++        if self.state == CANCELLED:
++            return
++        if self.state not in (NEW, PAID):
++            raise ShopError(f"cannot cancel an order in {self.state} state")
++
++        # Check every line before changing inventory so a failed cancellation
++        # cannot release only part of the order.
++        for sku, qty in self.lines.items():
++            if qty > self.inventory.reserved(sku):
++                raise ShopError(
++                    f"only {self.inventory.reserved(sku)} of {sku} reserved"
++                )
++
++        for sku, qty in self.lines.items():
++            self.inventory.release(sku, qty)
++        if self.state == PAID:
++            self.refund_due = True
++        self.state = CANCELLED
+diff --git a/tests/test_orders.py b/tests/test_orders.py
+index d3835d1..d7189f3 100644
+--- a/tests/test_orders.py
++++ b/tests/test_orders.py
+@@ -1,7 +1,8 @@
+ import pytest
+ 
+ from shoplib.inventory import Inventory
+-from shoplib.orders import DELIVERED, NEW, Order
++from shoplib.errors import ShopError
++from shoplib.orders import CANCELLED, DELIVERED, NEW, Order
+ 
+ 
+ def make():
+@@ -25,3 +26,55 @@ def test_cannot_ship_unpaid():
+     _, order = make()
+     with pytest.raises(ValueError):
+         order.ship()
++
++
++def test_cancel_new_order_releases_stock_without_refund():
++    inv, order = make()
++
++    order.cancel()
++
++    assert order.state == CANCELLED
++    assert order.refund_due is False
++    assert inv.reserved("A") == 0
++    assert inv.available("A") == 5
++
++
++def test_cancel_paid_order_releases_stock_and_marks_refund_due():
++    inv, order = make()
++    order.pay()
++
++    order.cancel()
++
++    assert order.state == CANCELLED
++    assert order.refund_due is True
++    assert inv.reserved("A") == 0
++    assert inv.available("A") == 5
++
++
++def test_cancelling_twice_does_not_release_stock_twice():
++    inv, order = make()
++    order.cancel()
++
++    order.cancel()
++
++    assert order.state == CANCELLED
++    assert inv.reserved("A") == 0
++    assert inv.available("A") == 5
++
++
++@pytest.mark.parametrize("deliver", [False, True])
++def test_cannot_cancel_shipped_or_delivered_order(deliver):
++    inv, order = make()
++    order.pay()
++    order.ship()
++    if deliver:
++        order.deliver()
++    state = order.state
++    stock = (inv.on_hand("A"), inv.reserved("A"), inv.available("A"))
++
++    with pytest.raises(ShopError):
++        order.cancel()
++
++    assert order.state == state
++    assert order.refund_due is False
++    assert (inv.on_hand("A"), inv.reserved("A"), inv.available("A")) == stock

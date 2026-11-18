@@ -1,0 +1,67 @@
+diff --git a/src/shoplib/inventory.py b/src/shoplib/inventory.py
+index 69cd1dc..dbc786c 100644
+--- a/src/shoplib/inventory.py
++++ b/src/shoplib/inventory.py
+@@ -35,7 +35,11 @@ class Inventory:
+         the SKU (including a SKU with nothing reserved) raises ValueError and
+         changes nothing.
+         """
+-        raise NotImplementedError
++        if qty <= 0:
++            raise ValueError("qty must be positive")
++        if qty > self.reserved(sku):
++            raise ValueError(f"only {self.reserved(sku)} of {sku} reserved")
++        self._reserved[sku] -= qty
+ 
+     def ship(self, sku: str, qty: int) -> None:
+         """Ship `qty` reserved units: they leave both reserved and on hand."""
+diff --git a/tests/test_inventory.py b/tests/test_inventory.py
+index 37436c0..8cbd0a7 100644
+--- a/tests/test_inventory.py
++++ b/tests/test_inventory.py
+@@ -18,3 +18,45 @@ def test_cannot_reserve_more_than_available():
+     inv.receive("A", 2)
+     with pytest.raises(ValueError):
+         inv.reserve("A", 3)
++
++
++def test_release_returns_reserved_units_to_available():
++    inv = Inventory()
++    inv.receive("A", 10)
++    inv.reserve("A", 6)
++
++    inv.release("A", 2)
++
++    assert inv.on_hand("A") == 10
++    assert inv.reserved("A") == 4
++    assert inv.available("A") == 6
++
++
++@pytest.mark.parametrize("qty", [0, -1])
++def test_release_requires_positive_quantity(qty):
++    inv = Inventory()
++    inv.receive("A", 5)
++    inv.reserve("A", 2)
++
++    with pytest.raises(ValueError, match="qty must be positive"):
++        inv.release("A", qty)
++
++    assert inv.reserved("A") == 2
++    assert inv.available("A") == 3
++
++
++@pytest.mark.parametrize(
++    ("sku", "reserved_qty", "release_qty"),
++    [("A", 2, 3), ("A", 0, 1), ("missing", 0, 1)],
++)
++def test_release_cannot_exceed_reserved_quantity(sku, reserved_qty, release_qty):
++    inv = Inventory()
++    inv.receive("A", 5)
++    if reserved_qty:
++        inv.reserve("A", reserved_qty)
++    before = (inv.on_hand(sku), inv.reserved(sku), inv.available(sku))
++
++    with pytest.raises(ValueError, match="reserved"):
++        inv.release(sku, release_qty)
++
++    assert (inv.on_hand(sku), inv.reserved(sku), inv.available(sku)) == before

@@ -1,0 +1,161 @@
+{
+  "run_id": "20261118-080712-review_same_buggy-t10-6e32",
+  "ts": "2026-11-18T00:08:40+00:00",
+  "tag": "full-luna",
+  "condition": "review_same_buggy",
+  "task": "t10-split-parcels",
+  "model": "gpt-6-luna",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "review_same",
+  "variant": "buggy",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 22.0,
+      "usage": {
+        "input_tokens": 75847,
+        "cached_input_tokens": 60045,
+        "cache_write_input_tokens": 15787,
+        "output_tokens": 1299,
+        "reasoning_output_tokens": 227
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    },
+    {
+      "status": "ok",
+      "wall_s": 64.2,
+      "usage": {
+        "input_tokens": 192974,
+        "cached_input_tokens": 154811,
+        "cache_write_input_tokens": 38130,
+        "output_tokens": 6073,
+        "reasoning_output_tokens": 3612
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 268821,
+    "cached_input_tokens": 214856,
+    "cache_write_input_tokens": 53917,
+    "output_tokens": 7372,
+    "reasoning_output_tokens": 3839
+  },
+  "cost_usd": 0.01932,
+  "cost_usd_low": 0.01258,
+  "wall_s": 86.2,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_bad_item[item0]",
+      "test_bad_item[item1]",
+      "test_bad_item[item2]",
+      "test_bad_item[item3]",
+      "test_empty",
+      "test_exact_fit_is_allowed",
+      "test_first_fit_not_best_fit",
+      "test_heaviest_first_and_first_fit",
+      "test_input_not_mutated",
+      "test_later_small_unit_fills_earlier_parcel",
+      "test_shipment_cost",
+      "test_single_parcel",
+      "test_ties_ordered_by_sku",
+      "test_unit_too_heavy"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "24 passed in 0.03s"
+    ]
+  },
+  "rule_followed": true,
+  "changed_files": [
+    "src/shoplib/shipping.py",
+    "tests/test_shipping.py"
+  ],
+  "out_of_scope": [],
+  "commands": 12,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      },
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "applied_exactly": true,
+  "before_review": {
+    "passed": [
+      "test_bad_item[item1]",
+      "test_bad_item[item2]",
+      "test_bad_item[item3]",
+      "test_empty",
+      "test_heaviest_first_and_first_fit",
+      "test_input_not_mutated",
+      "test_single_parcel",
+      "test_unit_too_heavy"
+    ],
+    "failed": [
+      "test_bad_item[item0]",
+      "test_exact_fit_is_allowed",
+      "test_first_fit_not_best_fit",
+      "test_later_small_unit_fills_earlier_parcel",
+      "test_shipment_cost",
+      "test_ties_ordered_by_sku"
+    ],
+    "error": null,
+    "ok": false
+  },
+  "findings": [
+    {
+      "file": "src/shoplib/shipping.py",
+      "description": "A quantity of 0 passed validation, despite the spec requiring quantities of at least 1. Fixed the check and added a regression test."
+    },
+    {
+      "file": "src/shoplib/shipping.py",
+      "description": "The packing check rejected units that brought a parcel exactly to max_weight_g. Changed it to allow equal weight and added a regression test."
+    },
+    {
+      "file": "tests/test_shipping.py",
+      "description": "Added coverage for SKU ordering, exact parcel capacity, zero-quantity rejection, and shipment_cost. `python -m pytest -q` passes: 24 passed."
+    }
+  ],
+  "bug_signatures": {
+    "exact-fit-rejected": [
+      "test_exact_fit_is_allowed",
+      "test_first_fit_not_best_fit",
+      "test_later_small_unit_fills_earlier_parcel",
+      "test_shipment_cost",
+      "test_ties_ordered_by_sku"
+    ],
+    "accepts-zero-qty": [
+      "test_bad_item[item0]"
+    ]
+  },
+  "bugs_caught": [
+    "accepts-zero-qty",
+    "exact-fit-rejected"
+  ],
+  "regressions": []
+}

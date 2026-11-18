@@ -1,0 +1,103 @@
+{
+  "run_id": "20261118-001325-plan-t05-04de",
+  "ts": "2026-11-17T16:14:24+00:00",
+  "tag": "full-terra",
+  "condition": "plan",
+  "task": "t05-csv-quoting",
+  "model": "gpt-6.1-terra",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "plan",
+  "variant": "",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 24.1,
+      "usage": {
+        "input_tokens": 44968,
+        "cached_input_tokens": 29160,
+        "cache_write_input_tokens": 15799,
+        "output_tokens": 411,
+        "reasoning_output_tokens": 65
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    },
+    {
+      "status": "ok",
+      "wall_s": 34.1,
+      "usage": {
+        "input_tokens": 114486,
+        "cached_input_tokens": 96371,
+        "cache_write_input_tokens": 18094,
+        "output_tokens": 1494,
+        "reasoning_output_tokens": 238
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 159454,
+    "cached_input_tokens": 125531,
+    "cache_write_input_tokens": 33893,
+    "output_tokens": 1905,
+    "reasoning_output_tokens": 303
+  },
+  "cost_usd": 0.10056,
+  "cost_usd_low": 0.0582,
+  "wall_s": 58.2,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_comma_is_quoted",
+      "test_empty_rows_still_has_header",
+      "test_newline_in_field",
+      "test_no_carriage_returns",
+      "test_plain_rows_are_unchanged",
+      "test_quote_is_doubled",
+      "test_round_trip",
+      "test_sku_with_comma_is_quoted_too"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "23 passed in 0.01s"
+    ]
+  },
+  "rule_followed": null,
+  "changed_files": [
+    "src/shoplib/reports.py",
+    "tests/test_reports.py"
+  ],
+  "out_of_scope": [],
+  "commands": 11,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6.1-terra",
+        "effort": "medium",
+        "sandbox": "read-only"
+      },
+      {
+        "model": "gpt-6.1-terra",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "plan_text": "1. Update `to_csv` to quote fields containing commas, double quotes, or newlines, and double embedded quotes.\n2. Add tests for special characters, plain values, and the header.\n3. Run `python -m pytest -q`.",
+  "edits_during_plan": []
+}

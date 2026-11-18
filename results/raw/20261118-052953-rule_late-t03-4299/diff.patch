@@ -1,0 +1,68 @@
+diff --git a/src/shoplib/inventory.py b/src/shoplib/inventory.py
+index 69cd1dc..54c097d 100644
+--- a/src/shoplib/inventory.py
++++ b/src/shoplib/inventory.py
+@@ -35,7 +35,12 @@ class Inventory:
+         the SKU (including a SKU with nothing reserved) raises ValueError and
+         changes nothing.
+         """
+-        raise NotImplementedError
++        if qty <= 0:
++            raise ValueError("qty must be positive")
++        reserved = self.reserved(sku)
++        if qty > reserved:
++            raise ValueError(f"only {reserved} of {sku} reserved")
++        self._reserved[sku] = reserved - qty
+ 
+     def ship(self, sku: str, qty: int) -> None:
+         """Ship `qty` reserved units: they leave both reserved and on hand."""
+diff --git a/tests/test_inventory.py b/tests/test_inventory.py
+index 37436c0..e047bfb 100644
+--- a/tests/test_inventory.py
++++ b/tests/test_inventory.py
+@@ -18,3 +18,45 @@ def test_cannot_reserve_more_than_available():
+     inv.receive("A", 2)
+     with pytest.raises(ValueError):
+         inv.reserve("A", 3)
++
++
++def test_release_returns_reserved_units_to_available():
++    inv = Inventory()
++    inv.receive("A", 10)
++    inv.reserve("A", 4)
++
++    inv.release("A", 3)
++
++    assert inv.on_hand("A") == 10
++    assert inv.reserved("A") == 1
++    assert inv.available("A") == 9
++
++
++@pytest.mark.parametrize("qty", [0, -1])
++def test_release_requires_positive_quantity(qty):
++    inv = Inventory()
++    inv.receive("A", 3)
++    inv.reserve("A", 2)
++
++    with pytest.raises(ValueError, match="qty must be positive"):
++        inv.release("A", qty)
++
++    assert inv.on_hand("A") == 3
++    assert inv.reserved("A") == 2
++
++
++@pytest.mark.parametrize(
++    ("sku", "reserved", "qty"),
++    [("A", 2, 3), ("MISSING", 0, 1)],
++)
++def test_cannot_release_more_than_reserved(sku, reserved, qty):
++    inv = Inventory()
++    if reserved:
++        inv.receive(sku, reserved)
++        inv.reserve(sku, reserved)
++
++    with pytest.raises(ValueError, match="reserved"):
++        inv.release(sku, qty)
++
++    assert inv.on_hand(sku) == reserved
++    assert inv.reserved(sku) == reserved

@@ -1,0 +1,130 @@
+diff --git a/src/shoplib/shipping.py b/src/shoplib/shipping.py
+index add6985..51816f9 100644
+--- a/src/shoplib/shipping.py
++++ b/src/shoplib/shipping.py
+@@ -1,5 +1,7 @@
+ """Shipping costs and parcel splitting. See docs/shipping.md."""
+ 
++from shoplib.errors import ShopError
++
+ # (upper bound in grams, cost in cents)
+ TIERS = [(1000, 500), (2000, 800), (5000, 1200), (20000, 2500)]
+ 
+@@ -16,9 +18,46 @@ def shipping_cost(weight_g: int) -> int:
+ 
+ def split_parcels(items: list[tuple[str, int, int]], max_weight_g: int) -> list[list[str]]:
+     """Split order items into parcels. See docs/shipping.md."""
+-    raise NotImplementedError
++    parcels: list[list[str]] = []
++    weights: list[int] = []
++    for sku, weight in _ordered_units(items, max_weight_g):
++        for index, parcel_weight in enumerate(weights):
++            if parcel_weight + weight <= max_weight_g:
++                parcels[index].append(sku)
++                weights[index] += weight
++                break
++        else:
++            parcels.append([sku])
++            weights.append(weight)
++    return parcels
+ 
+ 
+ def shipment_cost(items: list[tuple[str, int, int]], max_weight_g: int) -> int:
+     """Total shipping cost of an order. See docs/shipping.md."""
+-    raise NotImplementedError
++    parcels = split_parcels(items, max_weight_g)
++    weights = [0] * len(parcels)
++
++    # Reconstruct weights in packing order: a SKU can have multiple weights,
++    # so looking up a single weight per SKU would lose information.
++    for _, weight in _ordered_units(items, max_weight_g):
++        for index, parcel_weight in enumerate(weights):
++            if parcel_weight + weight <= max_weight_g:
++                weights[index] += weight
++                break
++
++    try:
++        return sum(shipping_cost(weight) for weight in weights)
++    except ValueError as exc:
++        raise ShopError(str(exc)) from exc
++
++
++def _ordered_units(items: list[tuple[str, int, int]], max_weight_g: int) -> list[tuple[str, int]]:
++    units: list[tuple[str, int]] = []
++    for sku, weight, qty in items:
++        if weight < 1 or weight > max_weight_g:
++            raise ShopError("invalid unit weight")
++        if qty < 1:
++            raise ShopError("quantity must be positive")
++        units.extend([(sku, weight)] * qty)
++    units.sort(key=lambda unit: (-unit[1], unit[0]))
++    return units
+diff --git a/tests/test_shipping.py b/tests/test_shipping.py
+index aad7f05..2c82ea7 100644
+--- a/tests/test_shipping.py
++++ b/tests/test_shipping.py
+@@ -1,6 +1,7 @@
+ import pytest
+ 
+-from shoplib.shipping import shipping_cost
++from shoplib.errors import ShopError
++from shoplib.shipping import shipping_cost, shipment_cost, split_parcels
+ 
+ 
+ def test_tiers():
+@@ -15,3 +16,55 @@ def test_invalid_weight():
+         shipping_cost(0)
+     with pytest.raises(ValueError):
+         shipping_cost(25000)
++
++
++def test_split_parcels_uses_first_fit_and_sorts_equal_weights_by_sku():
++    items = [("d", 200, 1), ("c", 300, 1), ("b", 600, 1), ("a", 700, 1)]
++    assert split_parcels(items, 1000) == [["a", "c"], ["b", "d"]]
++
++    items = [("z", 400, 2), ("b", 600, 1), ("a", 400, 1)]
++    assert split_parcels(items, 1000) == [["b", "a"], ["z", "z"]]
++
++
++@pytest.mark.parametrize(
++    "items, limit",
++    [
++        ([("sku", 0, 1)], 1000),
++        ([("sku", -1, 1)], 1000),
++        ([("sku", 1001, 1)], 1000),
++        ([("sku", 100, 0)], 1000),
++        ([("sku", 100, -1)], 1000),
++        ([("sku", 1, 1)], 0),
++    ],
++)
++def test_split_parcels_rejects_invalid_items(items, limit):
++    with pytest.raises(ShopError):
++        split_parcels(items, limit)
++    with pytest.raises(ShopError):
++        shipment_cost(items, limit)
++
++
++def test_empty_shipment():
++    assert split_parcels([], 0) == []
++    assert shipment_cost([], 0) == 0
++
++
++def test_shipment_cost_with_repeated_sku_at_different_weights(monkeypatch):
++    items = [("a", 1450, 1), ("a", 800, 1), ("a", 300, 1), ("a", 100, 1)]
++    assert split_parcels(items, 1750) == [["a", "a"], ["a", "a"]]
++    assert shipment_cost(items, 1750) == 1300
++
++    weights = []
++
++    def record_cost(weight):
++        weights.append(weight)
++        return 1
++
++    monkeypatch.setattr("shoplib.shipping.shipping_cost", record_cost)
++    assert shipment_cost(items, 1750) == 2
++    assert weights == [1750, 900]
++
++
++def test_shipment_cost_propagates_unsupported_parcel_weight_as_shop_error():
++    with pytest.raises(ShopError):
++        shipment_cost([("sku", 20001, 1)], 20001)

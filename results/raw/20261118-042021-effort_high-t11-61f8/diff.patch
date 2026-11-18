@@ -1,0 +1,183 @@
+diff --git a/src/shoplib/invoice.py b/src/shoplib/invoice.py
+index 5d1398c..5f05141 100644
+--- a/src/shoplib/invoice.py
++++ b/src/shoplib/invoice.py
+@@ -1,5 +1,8 @@
+ """Invoices: coupon allocation and tax. See docs/invoicing.md."""
+ 
++from .errors import ShopError
++from .money import percent_of
++
+ # Tax rates in percent, by region and product category.
+ TAX_RATES = {
+     "DE": {"standard": 19, "food": 7, "books": 7},
+@@ -10,4 +13,76 @@ TAX_RATES = {
+ 
+ def build_invoice(lines, coupon_cents: int, shipping_cents: int, region: str) -> dict:
+     """Build an invoice for an order. See docs/invoicing.md."""
+-    raise NotImplementedError
++    if not isinstance(region, str) or region not in TAX_RATES:
++        raise ShopError(f"unknown region {region!r}")
++
++    rates = TAX_RATES[region]
++
++    def require_cents(value, name: str) -> None:
++        if isinstance(value, bool) or not isinstance(value, int):
++            raise ShopError(f"{name} must be an integer number of cents")
++        if value < 0:
++            raise ShopError(f"{name} must not be negative")
++
++    require_cents(coupon_cents, "coupon")
++    require_cents(shipping_cents, "shipping")
++
++    if not isinstance(lines, list) or not lines:
++        raise ShopError("lines must be a non-empty list")
++
++    validated_lines = []
++    for line in lines:
++        if not isinstance(line, (tuple, list)) or len(line) != 4:
++            raise ShopError("each line must contain sku, price, quantity, and category")
++        sku, unit_price_cents, qty, category = line
++        require_cents(unit_price_cents, "price")
++        if isinstance(qty, bool) or not isinstance(qty, int) or qty < 1:
++            raise ShopError("quantity must be an integer of at least 1")
++        try:
++            rate = rates[category]
++        except (KeyError, TypeError):
++            raise ShopError(f"unknown category {category!r} for region {region!r}") from None
++        validated_lines.append((sku, unit_price_cents * qty, rate))
++
++    gross_total = sum(gross for _, gross, _ in validated_lines)
++    discount_total = min(coupon_cents, gross_total)
++
++    if gross_total == 0:
++        discounts = [0] * len(validated_lines)
++    else:
++        discounts = []
++        remainders = []
++        for index, (_, gross, _) in enumerate(validated_lines):
++            quotient, remainder = divmod(discount_total * gross, gross_total)
++            discounts.append(quotient)
++            remainders.append((remainder, index))
++
++        cents_left = discount_total - sum(discounts)
++        for _, index in sorted(remainders, key=lambda item: (-item[0], item[1]))[:cents_left]:
++            discounts[index] += 1
++
++    invoice_lines = []
++    for (sku, gross, rate), discount in zip(validated_lines, discounts):
++        net = gross - discount
++        invoice_lines.append({
++            "sku": sku,
++            "gross_cents": gross,
++            "discount_cents": discount,
++            "net_cents": net,
++            "tax_cents": percent_of(net, rate),
++        })
++
++    shipping_tax = 0
++    if any(rate > 0 for _, _, rate in validated_lines):
++        shipping_tax = percent_of(shipping_cents, rates["standard"])
++
++    return {
++        "lines": invoice_lines,
++        "shipping_cents": shipping_cents,
++        "shipping_tax_cents": shipping_tax,
++        "total_cents": (
++            sum(line["net_cents"] + line["tax_cents"] for line in invoice_lines)
++            + shipping_cents
++            + shipping_tax
++        ),
++    }
+diff --git a/tests/test_invoice.py b/tests/test_invoice.py
+new file mode 100644
+index 0000000..72e817b
+--- /dev/null
++++ b/tests/test_invoice.py
+@@ -0,0 +1,86 @@
++import pytest
++
++from shoplib.invoice import build_invoice
++
++
++def test_coupon_uses_largest_remainders_and_breaks_ties_by_input_order():
++    invoice = build_invoice(
++        [("a", 1, 1, "books"), ("b", 1, 1, "books"), ("c", 1, 1, "books")],
++        coupon_cents=2,
++        shipping_cents=0,
++        region="SG",
++    )
++
++    assert [line["discount_cents"] for line in invoice["lines"]] == [1, 1, 0]
++    assert [line["net_cents"] for line in invoice["lines"]] == [0, 0, 1]
++    assert invoice["total_cents"] == 1
++
++
++def test_coupon_split_uses_gross_proportions_and_is_capped_at_order_gross():
++    split = build_invoice(
++        [("a", 5, 1, "food"), ("b", 3, 1, "food"), ("c", 2, 1, "food")],
++        coupon_cents=4,
++        shipping_cents=0,
++        region="OR",
++    )
++    assert [line["discount_cents"] for line in split["lines"]] == [2, 1, 1]
++
++    capped = build_invoice(
++        [("a", 2, 1, "food"), ("b", 3, 1, "food")],
++        coupon_cents=99,
++        shipping_cents=0,
++        region="OR",
++    )
++    assert [line["discount_cents"] for line in capped["lines"]] == [2, 3]
++    assert [line["net_cents"] for line in capped["lines"]] == [0, 0]
++
++
++def test_zero_gross_order_gets_no_coupon_discount():
++    invoice = build_invoice(
++        [("a", 0, 1, "food"), ("b", 0, 2, "books")],
++        coupon_cents=20,
++        shipping_cents=0,
++        region="DE",
++    )
++    assert [line["discount_cents"] for line in invoice["lines"]] == [0, 0]
++
++
++def test_tax_is_rounded_per_line_and_shipping_uses_standard_rate():
++    invoice = build_invoice(
++        [("a", 7, 1, "food"), ("b", 7, 1, "food")],
++        coupon_cents=0,
++        shipping_cents=5,
++        region="DE",
++    )
++
++    assert [line["tax_cents"] for line in invoice["lines"]] == [0, 0]
++    assert invoice["shipping_tax_cents"] == 1
++    assert invoice["total_cents"] == 20
++
++
++def test_shipping_is_not_taxed_when_all_line_categories_are_exempt():
++    invoice = build_invoice(
++        [("book", 100, 1, "books")],
++        coupon_cents=0,
++        shipping_cents=100,
++        region="SG",
++    )
++    assert invoice["shipping_tax_cents"] == 0
++    assert invoice["total_cents"] == 200
++
++
++@pytest.mark.parametrize(
++    "lines,coupon,shipping,region",
++    [
++        ([("a", 100, 1, "food")], 0, 0, "XX"),
++        ([("a", 100, 1, "unknown")], 0, 0, "DE"),
++        ([], 0, 0, "DE"),
++        ([("a", 100, 0, "food")], 0, 0, "DE"),
++        ([("a", -1, 1, "food")], 0, 0, "DE"),
++        ([("a", 1, 1, "food")], -1, 0, "DE"),
++        ([("a", 1, 1, "food")], 0, -1, "DE"),
++    ],
++)
++def test_invalid_invoice_inputs_raise_value_error(lines, coupon, shipping, region):
++    with pytest.raises(ValueError):
++        build_invoice(lines, coupon, shipping, region)

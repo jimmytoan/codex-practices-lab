@@ -1,0 +1,216 @@
+diff --git a/src/shoplib/invoice.py b/src/shoplib/invoice.py
+index 5d1398c..5cbee0d 100644
+--- a/src/shoplib/invoice.py
++++ b/src/shoplib/invoice.py
+@@ -1,5 +1,8 @@
+ """Invoices: coupon allocation and tax. See docs/invoicing.md."""
+ 
++from shoplib.errors import ShopError
++from shoplib.money import percent_of
++
+ # Tax rates in percent, by region and product category.
+ TAX_RATES = {
+     "DE": {"standard": 19, "food": 7, "books": 7},
+@@ -10,4 +13,82 @@ TAX_RATES = {
+ 
+ def build_invoice(lines, coupon_cents: int, shipping_cents: int, region: str) -> dict:
+     """Build an invoice for an order. See docs/invoicing.md."""
+-    raise NotImplementedError
++    if not isinstance(region, str) or region not in TAX_RATES:
++        raise ShopError("unknown region")
++
++    try:
++        line_items = list(lines)
++    except TypeError as exc:
++        raise ShopError("lines must be a sequence") from exc
++    if not line_items:
++        raise ShopError("lines must not be empty")
++
++    def require_cents(value, name):
++        if isinstance(value, bool) or not isinstance(value, int):
++            raise ShopError(f"{name} must be integer cents")
++        if value < 0:
++            raise ShopError(f"{name} must not be negative")
++
++    require_cents(coupon_cents, "coupon")
++    require_cents(shipping_cents, "shipping")
++
++    rates = TAX_RATES[region]
++    normalized = []
++    for line in line_items:
++        try:
++            sku, unit_price_cents, qty, category = line
++        except (TypeError, ValueError) as exc:
++            raise ShopError("each line must contain sku, price, quantity, and category") from exc
++
++        require_cents(unit_price_cents, "price")
++        if isinstance(qty, bool) or not isinstance(qty, int) or qty < 1:
++            raise ShopError("quantity must be an integer of at least 1")
++        if not isinstance(category, str) or category not in rates:
++            raise ShopError("unknown category")
++        gross_cents = unit_price_cents * qty
++        normalized.append((sku, gross_cents, rates[category]))
++
++    total_gross = sum(gross for _, gross, _ in normalized)
++    coupon = min(coupon_cents, total_gross)
++    discounts = [0] * len(normalized)
++    if total_gross:
++        remainders = []
++        allocated = 0
++        for index, (_, gross, _) in enumerate(normalized):
++            discount, remainder = divmod(coupon * gross, total_gross)
++            discounts[index] = discount
++            allocated += discount
++            remainders.append((remainder, index))
++
++        cents_left = coupon - allocated
++        for _, index in sorted(remainders, key=lambda item: (-item[0], item[1]))[:cents_left]:
++            discounts[index] += 1
++
++    result_lines = []
++    for (sku, gross_cents, rate), discount_cents in zip(normalized, discounts):
++        net_cents = gross_cents - discount_cents
++        result_lines.append(
++            {
++                "sku": sku,
++                "gross_cents": gross_cents,
++                "discount_cents": discount_cents,
++                "net_cents": net_cents,
++                "tax_cents": percent_of(net_cents, rate),
++            }
++        )
++
++    shipping_tax_cents = 0
++    if any(rate > 0 for _, _, rate in normalized):
++        shipping_tax_cents = percent_of(shipping_cents, rates["standard"])
++
++    total_cents = (
++        sum(line["net_cents"] + line["tax_cents"] for line in result_lines)
++        + shipping_cents
++        + shipping_tax_cents
++    )
++    return {
++        "lines": result_lines,
++        "shipping_cents": shipping_cents,
++        "shipping_tax_cents": shipping_tax_cents,
++        "total_cents": total_cents,
++    }
+diff --git a/tests/test_invoice.py b/tests/test_invoice.py
+new file mode 100644
+index 0000000..743ff1d
+--- /dev/null
++++ b/tests/test_invoice.py
+@@ -0,0 +1,113 @@
++import pytest
++
++from shoplib.errors import ShopError
++from shoplib.invoice import build_invoice
++
++
++def test_coupon_uses_largest_remainder_and_earlier_line_breaks_ties():
++    invoice = build_invoice(
++        [("a", 100, 1, "books"), ("b", 100, 1, "books"), ("c", 100, 1, "books")],
++        coupon_cents=2,
++        shipping_cents=0,
++        region="OR",
++    )
++
++    assert [line["discount_cents"] for line in invoice["lines"]] == [1, 1, 0]
++    assert sum(line["discount_cents"] for line in invoice["lines"]) == 2
++
++
++def test_coupon_remainders_are_ranked_by_size():
++    invoice = build_invoice(
++        [("a", 5, 1, "books"), ("b", 3, 1, "books"), ("c", 2, 1, "books")],
++        coupon_cents=2,
++        shipping_cents=0,
++        region="OR",
++    )
++    assert [line["discount_cents"] for line in invoice["lines"]] == [1, 1, 0]
++
++
++def test_coupon_is_capped_and_zero_gross_lines_get_no_discount():
++    invoice = build_invoice(
++        [("a", 100, 1, "food"), ("b", 50, 1, "books")],
++        coupon_cents=500,
++        shipping_cents=0,
++        region="OR",
++    )
++    assert [line["discount_cents"] for line in invoice["lines"]] == [100, 50]
++
++    zero_gross = build_invoice(
++        [("free-a", 0, 1, "food"), ("free-b", 0, 4, "books")],
++        coupon_cents=10,
++        shipping_cents=0,
++        region="DE",
++    )
++    assert [line["discount_cents"] for line in zero_gross["lines"]] == [0, 0]
++
++
++def test_line_tax_is_rounded_per_line_and_total_includes_all_components():
++    invoice = build_invoice(
++        [("a", 6, 1, "food"), ("b", 6, 1, "food")],
++        coupon_cents=2,
++        shipping_cents=100,
++        region="DE",
++    )
++
++    # The two-cent coupon splits evenly, leaving 5 cents per line; 7% rounds
++    # to zero on each line. Shipping uses DE's 19% standard rate.
++    assert [line["net_cents"] for line in invoice["lines"]] == [5, 5]
++    assert [line["tax_cents"] for line in invoice["lines"]] == [0, 0]
++    assert invoice["shipping_tax_cents"] == 19
++    assert invoice["total_cents"] == 129
++
++
++def test_tax_rounding_happens_for_each_line_not_on_aggregate():
++    invoice = build_invoice(
++        [("a", 6, 1, "food"), ("b", 6, 1, "food")],
++        coupon_cents=0,
++        shipping_cents=0,
++        region="SG",
++    )
++    assert [line["tax_cents"] for line in invoice["lines"]] == [1, 1]
++    assert invoice["total_cents"] == 14
++
++
++def test_shipping_tax_depends_on_line_rates_and_uses_standard_rate():
++    books_only = build_invoice(
++        [("book", 100, 1, "books")],
++        coupon_cents=0,
++        shipping_cents=100,
++        region="SG",
++    )
++    assert books_only["shipping_tax_cents"] == 0
++
++    taxable_line = build_invoice(
++        [("food", 100, 1, "food")],
++        coupon_cents=0,
++        shipping_cents=100,
++        region="DE",
++    )
++    assert taxable_line["lines"][0]["tax_cents"] == 7
++    assert taxable_line["shipping_tax_cents"] == 19
++    assert taxable_line["total_cents"] == 226
++
++
++@pytest.mark.parametrize(
++    "lines,coupon,shipping,region",
++    [
++        ([("a", 1, 1, "food")], 0, 0, "XX"),
++        ([("a", 1, 1, "unknown")], 0, 0, "DE"),
++        ([], 0, 0, "DE"),
++        ([("a", 1, 0, "food")], 0, 0, "DE"),
++        ([("a", -1, 1, "food")], 0, 0, "DE"),
++        ([("a", 1, 1, "food")], -1, 0, "DE"),
++        ([("a", 1, 1, "food")], 0, -1, "DE"),
++    ],
++)
++def test_invalid_invoice_inputs_raise_value_error(lines, coupon, shipping, region):
++    with pytest.raises(ValueError):
++        build_invoice(lines, coupon, shipping, region)
++
++
++def test_invalid_invoice_inputs_raise_shop_error_subclass():
++    with pytest.raises(ShopError):
++        build_invoice([], 0, 0, "DE")

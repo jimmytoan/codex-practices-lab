@@ -1,0 +1,112 @@
+diff --git a/src/shoplib/storedays.py b/src/shoplib/storedays.py
+index c46116f..8333771 100644
+--- a/src/shoplib/storedays.py
++++ b/src/shoplib/storedays.py
+@@ -1,6 +1,48 @@
+ """Revenue per store day. See docs/store-days.md."""
+ 
++from datetime import datetime, timedelta, timezone
++import re
++
++from shoplib.errors import ShopError
++
+ 
+ def daily_revenue(sales: list[dict], utc_offset_hours: int = 8, day_starts_hour: int = 4) -> list[tuple[str, int]]:
+     """Revenue per store day. See docs/store-days.md."""
+-    raise NotImplementedError
++    if type(utc_offset_hours) is not int or not -23 <= utc_offset_hours <= 23:
++        raise ShopError("invalid UTC offset")
++    if type(day_starts_hour) is not int or not 0 <= day_starts_hour <= 23:
++        raise ShopError("invalid day start hour")
++    try:
++        sales_iter = iter(sales)
++    except TypeError as exc:
++        raise ShopError("invalid sales") from exc
++
++    local_zone = timezone(timedelta(hours=utc_offset_hours))
++    totals = {}
++    for sale in sales_iter:
++        if not isinstance(sale, dict) or not isinstance(sale.get("at"), str) or type(sale.get("cents")) is not int:
++            raise ShopError("invalid sale")
++        timestamp = sale["at"]
++        if not re.search(r"(?:Z|[+-]\d{2}:\d{2})$", timestamp):
++            raise ShopError("timestamp must include a zone")
++        try:
++            parsed = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
++            if parsed.tzinfo is None:
++                raise ShopError("timestamp must include a zone")
++            local_time = parsed.astimezone(local_zone)
++            day = local_time.date()
++            if local_time.hour < day_starts_hour:
++                day -= timedelta(days=1)
++        except (ValueError, OverflowError) as exc:
++            raise ShopError("invalid timestamp") from exc
++        totals[day] = totals.get(day, 0) + sale["cents"]
++
++    if not totals:
++        return []
++    day, last_day = min(totals), max(totals)
++    result = []
++    while True:
++        result.append((day.isoformat(), totals.get(day, 0)))
++        if day == last_day:
++            return result
++        day += timedelta(days=1)
+diff --git a/tests/test_storedays.py b/tests/test_storedays.py
+new file mode 100644
+index 0000000..2524c95
+--- /dev/null
++++ b/tests/test_storedays.py
+@@ -0,0 +1,52 @@
++import pytest
++
++from shoplib.errors import ShopError
++from shoplib.storedays import daily_revenue
++
++
++def test_default_boundary_and_refunds():
++    sales = [
++        {"at": "2026-11-17T18:30:00Z", "cents": 500},  # 02:30 local on Nov 18
++        {"at": "2026-11-17T19:59:59Z", "cents": -125},
++        {"at": "2026-11-17T20:00:00Z", "cents": 200},  # 04:00 local
++    ]
++    assert daily_revenue(sales) == [("2026-11-17", 375), ("2026-11-18", 200)]
++
++
++def test_offsets_gaps_and_date_order():
++    sales = [
++        {"at": "2027-01-02T05:00:00+03:00", "cents": 300},
++        {"at": "2026-12-30T22:00:00-04:00", "cents": 100},
++        {"at": "2026-12-31T02:00:00Z", "cents": -20},
++    ]
++    assert daily_revenue(sales, utc_offset_hours=-5, day_starts_hour=0) == [
++        ("2026-12-30", 80),
++        ("2026-12-31", 0),
++        ("2027-01-01", 300),
++    ]
++
++
++def test_no_sales_and_single_day():
++    assert daily_revenue([]) == []
++    assert daily_revenue([{"at": "2026-01-01T04:00:00+08:00", "cents": 0}]) == [("2026-01-01", 0)]
++
++
++@pytest.mark.parametrize("timestamp", ["2026-11-18T02:30:00", "2026-11-18+08:00", "badZ"])
++def test_invalid_or_unzoned_timestamp(timestamp):
++    with pytest.raises(ShopError):
++        daily_revenue([{"at": timestamp, "cents": 1}])
++
++
++@pytest.mark.parametrize("kwargs", [
++    {"utc_offset_hours": 24}, {"utc_offset_hours": -24}, {"utc_offset_hours": 1.5},
++    {"day_starts_hour": -1}, {"day_starts_hour": 24}, {"day_starts_hour": 4.5},
++])
++def test_invalid_settings(kwargs):
++    with pytest.raises(ShopError):
++        daily_revenue([], **kwargs)
++
++
++@pytest.mark.parametrize("sales", [None, [{}], [{"at": "2026-11-18T02:30:00Z", "cents": 1.5}]])
++def test_invalid_sales(sales):
++    with pytest.raises(ShopError):
++        daily_revenue(sales)

@@ -1,0 +1,101 @@
+{
+  "run_id": "20261118-035714-plan-t03-31bd",
+  "ts": "2026-11-17T19:57:45+00:00",
+  "tag": "full-luna",
+  "condition": "plan",
+  "task": "t03-inventory-release",
+  "model": "gpt-6-luna",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "plan",
+  "variant": "",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 10.0,
+      "usage": {
+        "input_tokens": 42495,
+        "cached_input_tokens": 27843,
+        "cache_write_input_tokens": 14643,
+        "output_tokens": 540,
+        "reasoning_output_tokens": 287
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    },
+    {
+      "status": "ok",
+      "wall_s": 20.1,
+      "usage": {
+        "input_tokens": 127038,
+        "cached_input_tokens": 108586,
+        "cache_write_input_tokens": 18428,
+        "output_tokens": 2328,
+        "reasoning_output_tokens": 589
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 169533,
+    "cached_input_tokens": 136429,
+    "cache_write_input_tokens": 33071,
+    "output_tokens": 2868,
+    "reasoning_output_tokens": 876
+  },
+  "cost_usd": 0.01107,
+  "cost_usd_low": 0.00694,
+  "wall_s": 30.1,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_qty_must_be_positive[-1]",
+      "test_qty_must_be_positive[0]",
+      "test_release_all_then_reserve_again",
+      "test_release_more_than_reserved_changes_nothing",
+      "test_release_part",
+      "test_unknown_or_unreserved_sku"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "26 passed in 0.01s"
+    ]
+  },
+  "rule_followed": true,
+  "changed_files": [
+    "src/shoplib/inventory.py",
+    "tests/test_inventory.py"
+  ],
+  "out_of_scope": [],
+  "commands": 5,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "read-only"
+      },
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "plan_text": "1. Implement `release` validation: reject nonpositive quantities and quantities greater than the SKU\u2019s reservation, raising `ShopError` (a `ValueError` subclass).\n2. On success, subtract `qty` from `_reserved` only; on errors, leave inventory unchanged.\n3. Add tests for successful release, invalid quantities, excess release, and a SKU with nothing reserved.\n4. Run `python -m pytest -q`.",
+  "edits_during_plan": []
+}

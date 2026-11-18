@@ -1,0 +1,68 @@
+diff --git a/src/shoplib/textutil.py b/src/shoplib/textutil.py
+index 061dc23..17d7d17 100644
+--- a/src/shoplib/textutil.py
++++ b/src/shoplib/textutil.py
+@@ -1,6 +1,9 @@
+ """Text helpers for URLs and listings."""
+ 
+ import re
++import unicodedata
++
++from shoplib.errors import ShopError
+ 
+ 
+ def slugify(text: str, max_len: int = 40) -> str:
+@@ -13,8 +16,16 @@ def slugify(text: str, max_len: int = 40) -> str:
+     - At most `max_len` characters, cut after the other steps; a cut never
+       leaves a trailing '-'.
+     - If nothing is left, the slug is 'n-a'.
++    - `max_len` must be an integer of at least 3, so the fallback fits.
+     """
+-    slug = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
++    if not isinstance(max_len, int) or isinstance(max_len, bool) or max_len < 3:
++        raise ShopError("max_len must be an integer of at least 3")
++
++    normalized = unicodedata.normalize("NFD", text.lower())
++    unaccented = "".join(
++        char for char in normalized if not unicodedata.category(char).startswith("M")
++    )
++    slug = re.sub(r"[^a-z0-9]+", "-", unaccented).strip("-")
+     slug = slug[:max_len].rstrip("-")
+     return slug or "n-a"
+ 
+diff --git a/tests/test_textutil.py b/tests/test_textutil.py
+index 4c83bb9..914b712 100644
+--- a/tests/test_textutil.py
++++ b/tests/test_textutil.py
+@@ -1,4 +1,5 @@
+ from shoplib.textutil import slugify, truncate
++from shoplib.errors import ShopError
+ 
+ 
+ def test_slugify_basic():
+@@ -6,6 +7,25 @@ def test_slugify_basic():
+     assert slugify("!!!") == "n-a"
+ 
+ 
++def test_slugify_removes_latin_accents():
++    assert slugify("Crème Brûlée") == "creme-brulee"
++
++
++def test_slugify_applies_max_len_after_cleanup():
++    assert slugify("Crème Brûlée", max_len=7) == "creme-b"
++    assert slugify("Blue--Mug", max_len=5) == "blue"
++
++
++def test_slugify_requires_room_for_fallback():
++    assert slugify("!!!", max_len=3) == "n-a"
++    try:
++        slugify("!!!", max_len=2)
++    except ShopError:
++        pass
++    else:
++        raise AssertionError("expected ShopError for max_len below 3")
++
++
+ def test_truncate():
+     assert truncate("hello world", 8) == "hello..."
+     assert truncate("short", 8) == "short"

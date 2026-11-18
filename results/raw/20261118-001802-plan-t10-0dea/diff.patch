@@ -1,0 +1,118 @@
+diff --git a/src/shoplib/shipping.py b/src/shoplib/shipping.py
+index add6985..b01b7f6 100644
+--- a/src/shoplib/shipping.py
++++ b/src/shoplib/shipping.py
+@@ -1,5 +1,7 @@
+ """Shipping costs and parcel splitting. See docs/shipping.md."""
+ 
++from shoplib.errors import ShopError
++
+ # (upper bound in grams, cost in cents)
+ TIERS = [(1000, 500), (2000, 800), (5000, 1200), (20000, 2500)]
+ 
+@@ -16,9 +18,44 @@ def shipping_cost(weight_g: int) -> int:
+ 
+ def split_parcels(items: list[tuple[str, int, int]], max_weight_g: int) -> list[list[str]]:
+     """Split order items into parcels. See docs/shipping.md."""
+-    raise NotImplementedError
++    parcels, _ = _pack_parcels(items, max_weight_g)
++    return parcels
++
++
++def _pack_parcels(
++    items: list[tuple[str, int, int]], max_weight_g: int
++) -> tuple[list[list[str]], list[int]]:
++    """Pack units and retain each parcel's weight, including repeated SKUs."""
++    units = []
++    for sku, weight, qty in items:
++        if weight < 1 or qty < 1:
++            raise ShopError("weight and quantity must be positive")
++        if weight > max_weight_g:
++            raise ShopError("unit is too heavy")
++        units.extend((sku, weight) for _ in range(qty))
++
++    units.sort(key=lambda unit: (-unit[1], unit[0]))
++    parcels: list[list[str]] = []
++    weights: list[int] = []
++    for sku, weight in units:
++        for index, parcel_weight in enumerate(weights):
++            if parcel_weight + weight <= max_weight_g:
++                parcels[index].append(sku)
++                weights[index] += weight
++                break
++        else:
++            parcels.append([sku])
++            weights.append(weight)
++    return parcels, weights
+ 
+ 
+ def shipment_cost(items: list[tuple[str, int, int]], max_weight_g: int) -> int:
+     """Total shipping cost of an order. See docs/shipping.md."""
+-    raise NotImplementedError
++    parcels = split_parcels(items, max_weight_g)
++    if not parcels:
++        return 0
++    _, weights = _pack_parcels(items, max_weight_g)
++    try:
++        return sum(shipping_cost(weight) for weight in weights)
++    except ValueError as exc:
++        raise ShopError(str(exc)) from exc
+diff --git a/tests/test_shipping.py b/tests/test_shipping.py
+index aad7f05..01e2629 100644
+--- a/tests/test_shipping.py
++++ b/tests/test_shipping.py
+@@ -1,6 +1,7 @@
+ import pytest
+ 
+-from shoplib.shipping import shipping_cost
++from shoplib.errors import ShopError
++from shoplib.shipping import shipment_cost, shipping_cost, split_parcels
+ 
+ 
+ def test_tiers():
+@@ -15,3 +16,45 @@ def test_invalid_weight():
+         shipping_cost(0)
+     with pytest.raises(ValueError):
+         shipping_cost(25000)
++
++
++def test_split_parcels_first_fit_decreasing():
++    items = [("d", 1, 1), ("b", 6, 1), ("c", 3, 1), ("a", 8, 1)]
++    assert split_parcels(items, 10) == [["a", "d"], ["b", "c"]]
++
++
++def test_split_parcels_equal_weights_and_quantities():
++    items = [("z", 2, 2), ("a", 2, 2), ("b", 3, 1)]
++    assert split_parcels(items, 5) == [["b", "a"], ["a", "z"], ["z"]]
++
++
++@pytest.mark.parametrize("items, limit", [
++    ([("a", 0, 1)], 10),
++    ([("a", -1, 1)], 10),
++    ([("a", 1, 0)], 10),
++    ([("a", 1, -1)], 10),
++    ([("a", 11, 1)], 10),
++    ([("a", 1, 1)], 0),
++    ([("a", 1, 1), ("b", 0, 1)], 10),
++])
++def test_invalid_items_raise_shop_error(items, limit):
++    with pytest.raises(ShopError):
++        split_parcels(items, limit)
++    with pytest.raises(ShopError):
++        shipment_cost(items, limit)
++
++
++def test_empty_order():
++    assert split_parcels([], 0) == []
++    assert shipment_cost([], 0) == 0
++
++
++def test_shipment_cost_with_repeated_sku_at_different_weights():
++    items = [("a", 400, 1), ("a", 600, 1), ("a", 500, 1)]
++    assert split_parcels(items, 1000) == [["a", "a"], ["a"]]
++    assert shipment_cost(items, 1000) == shipping_cost(1000) + shipping_cost(500)
++
++
++def test_shipment_cost_converts_shipping_errors():
++    with pytest.raises(ShopError):
++        shipment_cost([("a", 20000, 1)], 20000)

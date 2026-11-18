@@ -1,0 +1,79 @@
+diff --git a/src/shoplib/storedays.py b/src/shoplib/storedays.py
+index c46116f..d73ac81 100644
+--- a/src/shoplib/storedays.py
++++ b/src/shoplib/storedays.py
+@@ -1,6 +1,31 @@
+ """Revenue per store day. See docs/store-days.md."""
+ 
++from datetime import datetime, timedelta, timezone
++
++from shoplib.errors import ShopError
++
+ 
+ def daily_revenue(sales: list[dict], utc_offset_hours: int = 8, day_starts_hour: int = 4) -> list[tuple[str, int]]:
+     """Revenue per store day. See docs/store-days.md."""
+-    raise NotImplementedError
++    try:
++        tz = timezone(timedelta(hours=utc_offset_hours))
++    except (TypeError, ValueError, OverflowError) as exc:
++        raise ShopError("invalid UTC offset") from exc
++
++    totals: dict = {}
++    for sale in sales:
++        try:
++            at = datetime.fromisoformat(sale["at"])
++        except (TypeError, ValueError) as exc:
++            raise ShopError(f"invalid timestamp: {sale.get('at')!r}") from exc
++        if at.tzinfo is None:
++            raise ShopError(f"timestamp without a zone: {sale['at']}")
++        day = (at.astimezone(tz) - timedelta(hours=day_starts_hour)).date()
++        totals[day] = totals.get(day, 0) + sale["cents"]
++    if not totals:
++        return []
++    out, day = [], min(totals)
++    while day <= max(totals):
++        out.append((day.isoformat(), totals.get(day, 0)))
++        day += timedelta(days=1)
++    return out
+diff --git a/tests/test_storedays.py b/tests/test_storedays.py
+new file mode 100644
+index 0000000..c32aff0
+--- /dev/null
++++ b/tests/test_storedays.py
+@@ -0,0 +1,36 @@
++import pytest
++
++from shoplib.errors import ShopError
++from shoplib.storedays import daily_revenue
++
++
++def test_store_day_boundary_and_timezone_conversion():
++    sales = [
++        {"at": "2026-11-18T02:30:00+08:00", "cents": 250},
++        {"at": "2026-11-17T20:00:00Z", "cents": 300},
++    ]
++
++    assert daily_revenue(sales) == [("2026-11-17", 250), ("2026-11-18", 300)]
++
++
++def test_gap_days_and_refunds():
++    sales = [
++        {"at": "2026-11-15T20:00:00Z", "cents": 1000},
++        {"at": "2026-11-18T20:00:00Z", "cents": -250},
++    ]
++
++    assert daily_revenue(sales) == [
++        ("2026-11-16", 1000),
++        ("2026-11-17", 0),
++        ("2026-11-18", 0),
++        ("2026-11-19", -250),
++    ]
++
++
++def test_no_sales_returns_empty_list():
++    assert daily_revenue([]) == []
++
++
++def test_naive_timestamp_raises_value_error_subclass():
++    with pytest.raises(ShopError):
++        daily_revenue([{"at": "2026-11-18T02:30:00", "cents": 250}])

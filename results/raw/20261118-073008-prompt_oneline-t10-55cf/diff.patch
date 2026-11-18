@@ -1,0 +1,83 @@
+diff --git a/src/shoplib/shipping.py b/src/shoplib/shipping.py
+index add6985..0a8d1ed 100644
+--- a/src/shoplib/shipping.py
++++ b/src/shoplib/shipping.py
+@@ -1,24 +1,73 @@
+ """Shipping costs and parcel splitting. See docs/shipping.md."""
+ 
++from shoplib.errors import ShopError
++
+ # (upper bound in grams, cost in cents)
+ TIERS = [(1000, 500), (2000, 800), (5000, 1200), (20000, 2500)]
+ 
+ 
+ def shipping_cost(weight_g: int) -> int:
+     """Cost in cents of one parcel of `weight_g` grams. See docs/shipping.md."""
++    if not isinstance(weight_g, int) or isinstance(weight_g, bool):
++        raise ShopError("weight must be a positive integer")
+     if weight_g <= 0:
+-        raise ValueError("weight must be positive")
++        raise ShopError("weight must be positive")
+     for limit, cost in TIERS:
+-        if weight_g < limit:
++        if weight_g <= limit:
+             return cost
+-    raise ValueError("parcel is too heavy")
++    raise ShopError("parcel is too heavy")
++
++
++def _pack_items(
++    items: list[tuple[str, int, int]], max_weight_g: int
++) -> tuple[list[list[str]], list[int]]:
++    if not isinstance(max_weight_g, int) or isinstance(max_weight_g, bool) or max_weight_g < 1:
++        raise ShopError("maximum parcel weight must be positive")
++
++    units: list[tuple[int, str]] = []
++    try:
++        item_rows = list(items)
++    except TypeError as exc:
++        raise ShopError("items must be a list of items") from exc
++
++    for item in item_rows:
++        if not isinstance(item, (tuple, list)) or len(item) != 3:
++            raise ShopError("each item must contain a SKU, weight and quantity")
++        sku, unit_weight_g, qty = item
++        if not isinstance(sku, str):
++            raise ShopError("SKU must be a string")
++        if not isinstance(unit_weight_g, int) or isinstance(unit_weight_g, bool) or unit_weight_g < 1:
++            raise ShopError("item weight must be positive")
++        if not isinstance(qty, int) or isinstance(qty, bool) or qty < 1:
++            raise ShopError("quantity must be positive")
++        if unit_weight_g > max_weight_g:
++            raise ShopError("item is heavier than the maximum parcel weight")
++        units.extend((unit_weight_g, sku) for _ in range(qty))
++
++    units.sort(key=lambda unit: (-unit[0], unit[1]))
++
++    parcels: list[list[str]] = []
++    parcel_weights: list[int] = []
++    for unit_weight_g, sku in units:
++        for index, parcel_weight_g in enumerate(parcel_weights):
++            if parcel_weight_g + unit_weight_g <= max_weight_g:
++                parcels[index].append(sku)
++                parcel_weights[index] += unit_weight_g
++                break
++        else:
++            parcels.append([sku])
++            parcel_weights.append(unit_weight_g)
++
++    return parcels, parcel_weights
+ 
+ 
+ def split_parcels(items: list[tuple[str, int, int]], max_weight_g: int) -> list[list[str]]:
+     """Split order items into parcels. See docs/shipping.md."""
+-    raise NotImplementedError
++    parcels, _parcel_weights = _pack_items(items, max_weight_g)
++    return parcels
+ 
+ 
+ def shipment_cost(items: list[tuple[str, int, int]], max_weight_g: int) -> int:
+     """Total shipping cost of an order. See docs/shipping.md."""
+-    raise NotImplementedError
++    _parcels, parcel_weights = _pack_items(items, max_weight_g)
++    return sum(shipping_cost(weight_g) for weight_g in parcel_weights)

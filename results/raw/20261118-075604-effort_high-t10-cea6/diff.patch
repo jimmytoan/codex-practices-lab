@@ -1,0 +1,122 @@
+diff --git a/src/shoplib/shipping.py b/src/shoplib/shipping.py
+index add6985..735235f 100644
+--- a/src/shoplib/shipping.py
++++ b/src/shoplib/shipping.py
+@@ -1,5 +1,7 @@
+ """Shipping costs and parcel splitting. See docs/shipping.md."""
+ 
++from shoplib.errors import ShopError
++
+ # (upper bound in grams, cost in cents)
+ TIERS = [(1000, 500), (2000, 800), (5000, 1200), (20000, 2500)]
+ 
+@@ -14,11 +16,50 @@ def shipping_cost(weight_g: int) -> int:
+     raise ValueError("parcel is too heavy")
+ 
+ 
++def _pack_units(
++    items: list[tuple[str, int, int]], max_weight_g: int
++) -> list[list[tuple[str, int]]]:
++    units = []
++    for sku, unit_weight_g, qty in items:
++        if qty < 1:
++            raise ShopError("quantity must be at least 1")
++        if unit_weight_g < 1:
++            raise ShopError("unit weight must be positive")
++        if unit_weight_g > max_weight_g:
++            raise ShopError("unit is too heavy for a parcel")
++        units.extend((unit_weight_g, sku) for _ in range(qty))
++
++    # Sorting the expanded units makes the packing order explicit, including
++    # the SKU tie-break for units with equal weight.
++    units.sort(key=lambda unit: (-unit[0], unit[1]))
++
++    parcels = []
++    parcel_weights = []
++    for unit_weight_g, sku in units:
++        for index, parcel_weight_g in enumerate(parcel_weights):
++            if parcel_weight_g + unit_weight_g <= max_weight_g:
++                parcels[index].append((sku, unit_weight_g))
++                parcel_weights[index] += unit_weight_g
++                break
++        else:
++            parcels.append([(sku, unit_weight_g)])
++            parcel_weights.append(unit_weight_g)
++
++    return parcels
++
++
+ def split_parcels(items: list[tuple[str, int, int]], max_weight_g: int) -> list[list[str]]:
+     """Split order items into parcels. See docs/shipping.md."""
+-    raise NotImplementedError
++    return [[sku for sku, _ in parcel] for parcel in _pack_units(items, max_weight_g)]
+ 
+ 
+ def shipment_cost(items: list[tuple[str, int, int]], max_weight_g: int) -> int:
+     """Total shipping cost of an order. See docs/shipping.md."""
+-    raise NotImplementedError
++    parcels = split_parcels(items, max_weight_g)
++    # Keep weights alongside units internally because the public parcel value
++    # contains SKUs only, and repeated SKUs need not have identical weights.
++    weighted_parcels = _pack_units(items, max_weight_g)
++    return sum(
++        shipping_cost(sum(weight for _, weight in weighted_parcel))
++        for _, weighted_parcel in zip(parcels, weighted_parcels)
++    )
+diff --git a/tests/test_shipping.py b/tests/test_shipping.py
+index aad7f05..9337f30 100644
+--- a/tests/test_shipping.py
++++ b/tests/test_shipping.py
+@@ -1,6 +1,6 @@
+ import pytest
+ 
+-from shoplib.shipping import shipping_cost
++from shoplib.shipping import shipment_cost, shipping_cost, split_parcels
+ 
+ 
+ def test_tiers():
+@@ -15,3 +15,44 @@ def test_invalid_weight():
+         shipping_cost(0)
+     with pytest.raises(ValueError):
+         shipping_cost(25000)
++
++
++def test_split_parcels_uses_first_fit_decreasing_and_sku_ties():
++    items = [
++        ("z", 5, 1),
++        ("a", 5, 1),
++        ("c", 4, 1),
++        ("d", 3, 1),
++        ("e", 2, 1),
++        ("b", 6, 1),
++    ]
++
++    assert split_parcels(items, 10) == [["b", "c"], ["a", "z"], ["d", "e"]]
++
++
++def test_split_parcels_empty_and_exact_capacity():
++    assert split_parcels([], 10) == []
++    assert split_parcels([("a", 5, 2)], 10) == [["a", "a"]]
++
++
++@pytest.mark.parametrize(
++    "items, max_weight_g",
++    [
++        ([("a", 1, 0)], 10),
++        ([("a", 0, 1)], 10),
++        ([("a", 11, 1)], 10),
++    ],
++)
++def test_split_parcels_rejects_invalid_units(items, max_weight_g):
++    with pytest.raises(ValueError):
++        split_parcels(items, max_weight_g)
++
++
++def test_shipment_cost_sums_each_packed_parcel():
++    assert shipment_cost([("a", 1200, 2)], 2000) == 1600
++
++
++def test_shipment_cost_tracks_weight_for_repeated_sku_lines():
++    items = [("a", 2999, 1), ("a", 2000, 1), ("a", 999, 1)]
++
++    assert shipment_cost(items, 5000) == 1700

@@ -1,0 +1,173 @@
+diff --git a/src/shoplib/search.py b/src/shoplib/search.py
+index 2c1a324..faf6bb9 100644
+--- a/src/shoplib/search.py
++++ b/src/shoplib/search.py
+@@ -1,6 +1,8 @@
+ """Product search. See docs/search.md."""
+ 
+ from dataclasses import dataclass, field
++from operator import eq, ge, gt, le, lt
++import re
+ 
+ 
+ @dataclass
+@@ -13,4 +15,71 @@ class Product:
+ 
+ def search(products: list[Product], query: str) -> list[Product]:
+     """The products that match `query`, in their input order. See docs/search.md."""
+-    raise NotImplementedError
++    tokens = []
++    token = []
++    in_quotes = False
++    started = False
++    for char in query:
++        if char == '"':
++            in_quotes = not in_quotes
++            started = True
++        elif char.isspace() and not in_quotes:
++            if started:
++                tokens.append("".join(token))
++                token = []
++                started = False
++        else:
++            token.append(char)
++            started = True
++    if in_quotes:
++        raise ValueError("unclosed quote")
++    if started:
++        tokens.append("".join(token))
++
++    comparisons = {"<": lt, "<=": le, ">": gt, ">=": ge, "=": eq}
++    terms = []
++    for token in tokens:
++        negated = token.startswith("-")
++        if negated:
++            token = token[1:]
++            if not token:
++                raise ValueError("empty negated term")
++
++        price = re.match(r"^price(<=|>=|<|>|=)(.*)$", token, re.DOTALL)
++        if price:
++            operator, value = price.groups()
++            if not re.fullmatch(r"[0-9]+", value):
++                raise ValueError("invalid price")
++            # Convert in chunks so valid prices are not subject to Python's
++            # limit on the length of a single integer-string conversion.
++            cents = 0
++            for start in range(0, len(value), 9):
++                chunk = value[start:start + 9]
++                cents = cents * (10 ** len(chunk)) + int(chunk)
++            terms.append((negated, "price", (comparisons[operator], cents)))
++        elif ":" in token:
++            field_name, value = token.split(":", 1)
++            if field_name not in {"sku", "tag", "name"}:
++                raise ValueError("unknown field")
++            if not value:
++                raise ValueError("empty field value")
++            terms.append((negated, field_name, value.casefold()))
++        else:
++            terms.append((negated, "name", token.casefold()))
++
++    def matches(product: Product, field_name: str, value: object) -> bool:
++        if field_name == "price":
++            compare, cents = value
++            return compare(product.price_cents, cents)
++        if field_name == "name":
++            return value in product.name.casefold()
++        values = [product.sku] if field_name == "sku" else product.tags
++        if value.endswith("*"):
++            return any(item.casefold().startswith(value[:-1]) for item in values)
++        return any(item.casefold() == value for item in values)
++
++    return [
++        product for product in products
++        if all(matches(product, field_name, value) != negated
++               for negated, field_name, value in terms)
++    ]
+diff --git a/tests/test_search.py b/tests/test_search.py
+new file mode 100644
+index 0000000..d213963
+--- /dev/null
++++ b/tests/test_search.py
+@@ -0,0 +1,81 @@
++import pytest
++
++from shoplib.search import Product, search
++
++
++@pytest.fixture
++def products():
++    return [
++        Product("MUG-01", "Blue Coffee Mug", 1000, ["Sale", "Kitchenware"]),
++        Product("MUG-02", "BLUE travel mug", 1500, ["Kitchen", "SALE*"]),
++        Product("TEA-01", "Tea cup", 999, ["sale"]),
++        Product("MUG-*", "Mug with star", 0),
++    ]
++
++
++@pytest.mark.parametrize(
++    ("query", "indices"),
++    [
++        ("", [0, 1, 2, 3]),
++        (" \t\n ", [0, 1, 2, 3]),
++        ("mUg", [0, 1, 3]),
++        ('"blue coffee"', [0]),
++        ('name:"BLUE travel"', [1]),
++        ('"name:Blue Coffee"', [0]),
++        ("sku:mug-01", [0]),
++        ("sku:mug-0*", [0, 1]),
++        ("sku:mug-*x", []),
++        ("sku:*", [0, 1, 2, 3]),
++        ("tag:sale", [0, 2]),
++        ("tag:sale*", [0, 1, 2]),
++        ("tag:SALE**", [1]),
++        ("tag:kit*", [0, 1]),
++        ("tag:*", [0, 1, 2]),
++        ("name:mug*", []),
++        ("price<1000", [2, 3]),
++        ("price<=1000", [0, 2, 3]),
++        ("price>1000", [1]),
++        ("price>=1000", [0, 1]),
++        ("price=1000", [0]),
++        ("price=0000", [3]),
++        ("mug -tag:sale price>=1000", [1]),
++        ('-name:"blue coffee" -price<1000', [1]),
++        ("-sku:MUG-*", [2]),
++        ("-tag:*", [3]),
++        ('""', [0, 1, 2, 3]),
++    ],
++)
++def test_search_terms(products, query, indices):
++    assert search(products, query) == [products[index] for index in indices]
++
++
++@pytest.mark.parametrize(
++    "query",
++    [
++        "color:blue", "price:5", ":value", "tag:", 'name:""', "sku:",
++        "-", '-""', '"unclosed', 'name:"unclosed value',
++        "price<", "price<=x", "price>1.5", "price>=-1", "price=+1",
++        "price==1", "price<>1", "price=1x", "price=1:2",
++    ],
++)
++def test_invalid_queries_raise_even_when_no_products_match(products, query):
++    with pytest.raises(ValueError):
++        search([], query)
++    with pytest.raises(ValueError):
++        search(products, "no-match " + query)
++
++
++def test_search_casefolds_and_preserves_input_order():
++    products = [Product("STRASSE", "Straße", 1, ["GRÜN"]),
++                Product("strasse", "STRASSE", 2, ["grün"])]
++    assert search(products, "strasse sku:straße tag:Grün") == products
++
++
++def test_whitespace_and_colons_inside_quoted_values():
++    product = Product("a:b c", "a:b c", 10, ["a:b c"])
++    assert search([product], 'sku:"a:b c" tag:"a:b c" name:"a:b c"') == [product]
++
++
++def test_very_long_whole_number_price(products):
++    assert search(products, "price<" + "9" * 5000) == products
++    assert search(products, "price=" + "0" * 5000) == [products[3]]

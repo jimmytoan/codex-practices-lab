@@ -1,0 +1,111 @@
+diff --git a/src/shoplib/storedays.py b/src/shoplib/storedays.py
+index c46116f..3b37181 100644
+--- a/src/shoplib/storedays.py
++++ b/src/shoplib/storedays.py
+@@ -1,6 +1,59 @@
+ """Revenue per store day. See docs/store-days.md."""
+ 
++from datetime import date, datetime, timedelta, timezone
++
++from shoplib.errors import ShopError
++
+ 
+ def daily_revenue(sales: list[dict], utc_offset_hours: int = 8, day_starts_hour: int = 4) -> list[tuple[str, int]]:
+     """Revenue per store day. See docs/store-days.md."""
+-    raise NotImplementedError
++    if not isinstance(sales, list):
++        raise ShopError("sales must be a list")
++    if type(utc_offset_hours) is not int:
++        raise ShopError("UTC offset must be an integer number of hours")
++    if type(day_starts_hour) is not int or not 0 <= day_starts_hour < 24:
++        raise ShopError("day start must be an hour from 0 to 23")
++
++    revenue_by_day: dict[date, int] = {}
++
++    for sale in sales:
++        if not isinstance(sale, dict) or "at" not in sale or "cents" not in sale:
++            raise ShopError("each sale must include an at timestamp and cents amount")
++        cents = sale["cents"]
++        if type(cents) is not int:
++            raise ShopError("sale cents must be an integer")
++
++        timestamp = sale["at"]
++        try:
++            normalized_timestamp = timestamp
++            if isinstance(timestamp, str) and timestamp.endswith("Z"):
++                normalized_timestamp = timestamp[:-1] + "+00:00"
++            sold_at = datetime.fromisoformat(normalized_timestamp)
++        except (TypeError, ValueError) as error:
++            raise ShopError("sale timestamp must be ISO 8601 with a time zone") from error
++
++        if sold_at.utcoffset() is None:
++            raise ShopError("sale timestamp must include a time zone")
++
++        local_time = (
++            sold_at.astimezone(timezone.utc).replace(tzinfo=None)
++            + timedelta(hours=utc_offset_hours)
++        )
++        store_day = local_time.date()
++        if local_time.hour < day_starts_hour:
++            store_day -= timedelta(days=1)
++
++        revenue_by_day[store_day] = revenue_by_day.get(store_day, 0) + cents
++
++    if not revenue_by_day:
++        return []
++
++    first_day = min(revenue_by_day)
++    last_day = max(revenue_by_day)
++    result = []
++    current_day = first_day
++    while current_day <= last_day:
++        result.append((current_day.isoformat(), revenue_by_day.get(current_day, 0)))
++        current_day += timedelta(days=1)
++
++    return result
+diff --git a/tests/test_storedays.py b/tests/test_storedays.py
+new file mode 100644
+index 0000000..fc86ca7
+--- /dev/null
++++ b/tests/test_storedays.py
+@@ -0,0 +1,40 @@
++import pytest
++
++from shoplib.errors import ShopError
++from shoplib.storedays import daily_revenue
++
++
++def test_assigns_sales_to_store_days_in_local_time():
++    sales = [
++        {"at": "2026-11-17T19:00:00Z", "cents": 125},
++        {"at": "2026-11-18T04:00:00+08:00", "cents": 300},
++        {"at": "2026-11-18T02:30:00+08:00", "cents": -25},
++    ]
++
++    assert daily_revenue(sales) == [
++        ("2026-11-17", 100),
++        ("2026-11-18", 300),
++    ]
++
++
++def test_includes_zero_revenue_days_between_sales():
++    sales = [
++        {"at": "2026-11-17T04:00:00+08:00", "cents": 200},
++        {"at": "2026-11-20T04:00:00+08:00", "cents": 500},
++    ]
++
++    assert daily_revenue(sales) == [
++        ("2026-11-17", 200),
++        ("2026-11-18", 0),
++        ("2026-11-19", 0),
++        ("2026-11-20", 500),
++    ]
++
++
++def test_empty_sales_return_empty_list():
++    assert daily_revenue([]) == []
++
++
++def test_timestamp_without_timezone_is_rejected():
++    with pytest.raises(ShopError):
++        daily_revenue([{"at": "2026-11-18T02:30:00", "cents": 100}])

@@ -1,0 +1,100 @@
+diff --git a/src/shoplib/cart.py b/src/shoplib/cart.py
+index 9150045..60d9403 100644
+--- a/src/shoplib/cart.py
++++ b/src/shoplib/cart.py
+@@ -2,6 +2,9 @@
+ 
+ from dataclasses import dataclass
+ 
++from .errors import ShopError
++from .money import percent_of
++
+ 
+ @dataclass
+ class Line:
+@@ -17,9 +20,9 @@ class Cart:
+     def add(self, sku: str, unit_price_cents: int, qty: int = 1) -> None:
+         """Add `qty` units. Adding a SKU already in the cart increases its quantity."""
+         if qty <= 0:
+-            raise ValueError("qty must be positive")
++            raise ShopError("qty must be positive")
+         if unit_price_cents < 0:
+-            raise ValueError("price must not be negative")
++            raise ShopError("price must not be negative")
+         if sku in self._lines:
+             self._lines[sku].qty += qty
+         else:
+@@ -27,7 +30,7 @@ class Cart:
+ 
+     def remove(self, sku: str) -> None:
+         if sku not in self._lines:
+-            raise ValueError(f"{sku} is not in the cart")
++            raise ShopError(f"{sku} is not in the cart")
+         del self._lines[sku]
+ 
+     def lines(self) -> list[Line]:
+@@ -36,9 +39,12 @@ class Cart:
+     def line_total(self, sku: str) -> int:
+         """Total for one line in cents."""
+         if sku not in self._lines:
+-            raise ValueError(f"{sku} is not in the cart")
++            raise ShopError(f"{sku} is not in the cart")
+         line = self._lines[sku]
+-        return line.unit_price_cents * line.qty
++        total = line.unit_price_cents * line.qty
++        if line.qty >= 10:
++            total -= percent_of(total, 5)
++        return total
+ 
+     def subtotal(self) -> int:
+         """Sum of all line totals in cents."""
+diff --git a/tests/test_cart.py b/tests/test_cart.py
+index 1a3d0e7..f2740ee 100644
+--- a/tests/test_cart.py
++++ b/tests/test_cart.py
+@@ -1,6 +1,7 @@
+ import pytest
+ 
+ from shoplib.cart import Cart
++from shoplib.errors import ShopError
+ 
+ 
+ def test_add_and_subtotal():
+@@ -19,5 +20,36 @@ def test_add_same_sku_merges():
+ 
+ 
+ def test_bad_qty():
+-    with pytest.raises(ValueError):
++    with pytest.raises(ShopError):
+         Cart().add("A", 250, 0)
++
++
++def test_bulk_discount_threshold_and_rounding():
++    cart = Cart()
++    cart.add("under", 1, 9)
++    cart.add("threshold", 1, 10)
++    cart.add("above", 10, 11)
++
++    assert cart.line_total("under") == 9
++    assert cart.line_total("threshold") == 9  # 0.5 cent discount rounds up
++    assert cart.line_total("above") == 104  # 5.5 cent discount rounds up
++    assert cart.subtotal() == 122
++
++
++def test_merged_quantity_qualifies_for_discount():
++    cart = Cart()
++    cart.add("A", 250, 9)
++    assert cart.subtotal() == 2250
++    cart.add("A", 250)
++    assert cart.line_total("A") == 2375
++    assert cart.subtotal() == 2375
++
++
++def test_cart_invalid_operations_raise_shop_error():
++    cart = Cart()
++    with pytest.raises(ShopError):
++        cart.add("A", -1)
++    with pytest.raises(ShopError):
++        cart.remove("missing")
++    with pytest.raises(ShopError):
++        cart.line_total("missing")

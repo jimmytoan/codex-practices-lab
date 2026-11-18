@@ -1,0 +1,147 @@
+{
+  "run_id": "20261118-081219-review_same_buggy-t14-aef9",
+  "ts": "2026-11-18T00:13:41+00:00",
+  "tag": "full-luna",
+  "condition": "review_same_buggy",
+  "task": "t14-store-days",
+  "model": "gpt-6-luna",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "review_same",
+  "variant": "buggy",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 22.0,
+      "usage": {
+        "input_tokens": 92119,
+        "cached_input_tokens": 75656,
+        "cache_write_input_tokens": 16445,
+        "output_tokens": 1745,
+        "reasoning_output_tokens": 406
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    },
+    {
+      "status": "ok",
+      "wall_s": 58.2,
+      "usage": {
+        "input_tokens": 231683,
+        "cached_input_tokens": 192248,
+        "cache_write_input_tokens": 39396,
+        "output_tokens": 6069,
+        "reasoning_output_tokens": 2721
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 323802,
+    "cached_input_tokens": 267904,
+    "cache_write_input_tokens": 55841,
+    "output_tokens": 7814,
+    "reasoning_output_tokens": 3127
+  },
+  "cost_usd": 0.02055,
+  "cost_usd_low": 0.01357,
+  "wall_s": 80.2,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_early_morning_belongs_to_previous_day",
+      "test_empty",
+      "test_exactly_at_start_hour_is_new_day",
+      "test_gaps_filled_with_zero_and_sorted",
+      "test_naive_timestamp_is_an_error",
+      "test_offsets_in_timestamps",
+      "test_other_offset_and_start",
+      "test_totals_and_refunds",
+      "test_year_boundary"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "26 passed in 0.09s"
+    ]
+  },
+  "rule_followed": null,
+  "changed_files": [
+    "src/shoplib/storedays.py",
+    "tests/test_storedays.py"
+  ],
+  "out_of_scope": [],
+  "commands": 15,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      },
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "applied_exactly": true,
+  "before_review": {
+    "passed": [
+      "test_early_morning_belongs_to_previous_day",
+      "test_empty",
+      "test_naive_timestamp_is_an_error",
+      "test_offsets_in_timestamps",
+      "test_other_offset_and_start",
+      "test_totals_and_refunds",
+      "test_year_boundary"
+    ],
+    "failed": [
+      "test_exactly_at_start_hour_is_new_day",
+      "test_gaps_filled_with_zero_and_sorted"
+    ],
+    "error": null,
+    "ok": false
+  },
+  "findings": [
+    {
+      "file": "src/shoplib/storedays.py",
+      "description": "A sale exactly at `day_starts_hour` was assigned to the previous store day because the calculation subtracted one microsecond. Removed that adjustment; added boundary regression coverage."
+    },
+    {
+      "file": "src/shoplib/storedays.py",
+      "description": "Store days without sales were omitted, but the spec requires every day between the first and last sale with a zero total for gaps. The output now includes those days; added regression coverage."
+    },
+    {
+      "file": "src/shoplib/storedays.py",
+      "description": "The naive-timestamp error used bare `ValueError`, contrary to the repository rule requiring `ShopError` (a `ValueError` subclass). Changed the exception and added coverage. `python -m pytest -q`: 26 passed."
+    }
+  ],
+  "bug_signatures": {
+    "start-hour-goes-to-previous-day": [
+      "test_exactly_at_start_hour_is_new_day"
+    ],
+    "no-gap-days": [
+      "test_gaps_filled_with_zero_and_sorted"
+    ]
+  },
+  "bugs_caught": [
+    "no-gap-days",
+    "start-hour-goes-to-previous-day"
+  ],
+  "regressions": []
+}

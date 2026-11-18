@@ -1,0 +1,84 @@
+{
+  "run_id": "20261117-211958-agents_none-t04-6884",
+  "ts": "2026-11-17T13:20:31+00:00",
+  "tag": "full-terra",
+  "condition": "agents_none",
+  "task": "t04-order-cancel",
+  "model": "gpt-6.1-terra",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "none",
+  "prompt": "four_part",
+  "mode": "direct",
+  "variant": "",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 32.1,
+      "usage": {
+        "input_tokens": 82418,
+        "cached_input_tokens": 64293,
+        "cache_write_input_tokens": 18110,
+        "output_tokens": 1727,
+        "reasoning_output_tokens": 62
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 82418,
+    "cached_input_tokens": 64293,
+    "cache_write_input_tokens": 18110,
+    "output_tokens": 1727,
+    "reasoning_output_tokens": 62
+  },
+  "cost_usd": 0.05714,
+  "cost_usd_low": 0.0345,
+  "wall_s": 32.1,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_cancel_new_releases_stock",
+      "test_cancel_paid_sets_refund",
+      "test_cancel_twice_is_a_no_op",
+      "test_cancelled_order_cannot_be_paid_or_shipped",
+      "test_cannot_cancel_delivered",
+      "test_cannot_cancel_shipped",
+      "test_other_orders_keep_their_reservation"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "30 passed in 0.02s"
+    ]
+  },
+  "rule_followed": false,
+  "changed_files": [
+    "src/shoplib/inventory.py",
+    "src/shoplib/orders.py",
+    "tests/test_inventory.py",
+    "tests/test_orders.py"
+  ],
+  "out_of_scope": [],
+  "commands": 9,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 0,
+    "agents_loaded_text_tail": null,
+    "turns": [
+      {
+        "model": "gpt-6.1-terra",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": false
+  }
+}

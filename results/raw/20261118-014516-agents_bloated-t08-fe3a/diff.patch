@@ -1,0 +1,108 @@
+diff --git a/docs/cli.md b/docs/cli.md
+index 658cbf3..ce83cbe 100644
+--- a/docs/cli.md
++++ b/docs/cli.md
+@@ -1,8 +1,11 @@
+ # Command line
+ 
+-    python -m shoplib.cli report SALES_JSON
++    python -m shoplib.cli report SALES_JSON [--format {csv,json}]
+ 
+ `SALES_JSON` is a file holding a list of sales, each
+ `{"sku": ..., "name": ..., "qty": ..., "unit_price_cents": ...}`.
+-The command prints the sales summary (one row per SKU) as CSV and exits 0.
++The command prints the sales summary (one row per SKU) and exits 0. The format
++is CSV by default; use `--format json` to print a JSON array of summary rows.
++The `revenue_cents` values remain integer cents in both formats. An unknown
++format is a usage error.
+ Output formats follow docs/CONVENTIONS.md.
+diff --git a/src/shoplib/cli.py b/src/shoplib/cli.py
+index bb9747c..0a9444d 100644
+--- a/src/shoplib/cli.py
++++ b/src/shoplib/cli.py
+@@ -12,6 +12,7 @@ def build_parser() -> argparse.ArgumentParser:
+     sub = parser.add_subparsers(dest="command", required=True)
+     report = sub.add_parser("report", help="print the sales summary")
+     report.add_argument("sales_json", help="file with a JSON list of sales")
++    report.add_argument("--format", choices=("csv", "json"), default="csv")
+     return parser
+ 
+ 
+@@ -20,7 +21,11 @@ def main(argv: list[str] | None = None) -> int:
+     if args.command == "report":
+         with open(args.sales_json) as fh:
+             sales = json.load(fh)
+-        sys.stdout.write(to_csv(sales_summary(sales)))
++        rows = sales_summary(sales)
++        if args.format == "json":
++            sys.stdout.write(json.dumps(rows, indent=2, sort_keys=True) + "\n")
++        else:
++            sys.stdout.write(to_csv(rows))
+     return 0
+ 
+ 
+diff --git a/tests/test_cli.py b/tests/test_cli.py
+index 29a7ce0..798ccff 100644
+--- a/tests/test_cli.py
++++ b/tests/test_cli.py
+@@ -1,5 +1,7 @@
+ import json
+ 
++import pytest
++
+ from shoplib.cli import main
+ 
+ 
+@@ -8,3 +10,52 @@ def test_report_csv(tmp_path, capsys):
+     path.write_text(json.dumps([{"sku": "A", "name": "Mug", "qty": 2, "unit_price_cents": 450}]))
+     assert main(["report", str(path)]) == 0
+     assert capsys.readouterr().out == "sku,name,units,revenue_cents\nA,Mug,2,900\n"
++
++
++def test_report_explicit_csv(tmp_path, capsys):
++    path = tmp_path / "sales.json"
++    path.write_text(json.dumps([{"sku": "A", "name": "Mug", "qty": 2, "unit_price_cents": 450}]))
++    assert main(["report", str(path), "--format", "csv"]) == 0
++    assert capsys.readouterr().out == "sku,name,units,revenue_cents\nA,Mug,2,900\n"
++
++
++def test_report_json(tmp_path, capsys):
++    path = tmp_path / "sales.json"
++    path.write_text(json.dumps([
++        {"sku": "B", "name": "Bowl", "qty": 1, "unit_price_cents": 900},
++        {"sku": "A", "name": "Mug", "qty": 2, "unit_price_cents": 450},
++        {"sku": "A", "name": "Mug", "qty": 1, "unit_price_cents": 450},
++    ]))
++    assert main(["report", str(path), "--format", "json"]) == 0
++    assert capsys.readouterr().out == (
++        '[\n'
++        '  {\n'
++        '    "name": "Mug",\n'
++        '    "revenue_cents": 1350,\n'
++        '    "sku": "A",\n'
++        '    "units": 3\n'
++        '  },\n'
++        '  {\n'
++        '    "name": "Bowl",\n'
++        '    "revenue_cents": 900,\n'
++        '    "sku": "B",\n'
++        '    "units": 1\n'
++        '  }\n'
++        ']\n'
++    )
++
++
++def test_report_empty_json(tmp_path, capsys):
++    path = tmp_path / "sales.json"
++    path.write_text("[]")
++    assert main(["report", str(path), "--format", "json"]) == 0
++    assert capsys.readouterr().out == "[]\n"
++
++
++def test_report_unknown_format_is_usage_error(capsys):
++    with pytest.raises(SystemExit) as exc:
++        main(["report", "missing.json", "--format", "xml"])
++    assert exc.value.code == 2
++    captured = capsys.readouterr()
++    assert captured.out == ""
++    assert "invalid choice" in captured.err

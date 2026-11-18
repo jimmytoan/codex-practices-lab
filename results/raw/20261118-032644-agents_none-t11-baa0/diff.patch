@@ -1,0 +1,176 @@
+diff --git a/src/shoplib/invoice.py b/src/shoplib/invoice.py
+index 5d1398c..783ecac 100644
+--- a/src/shoplib/invoice.py
++++ b/src/shoplib/invoice.py
+@@ -1,5 +1,7 @@
+ """Invoices: coupon allocation and tax. See docs/invoicing.md."""
+ 
++from .money import percent_of
++
+ # Tax rates in percent, by region and product category.
+ TAX_RATES = {
+     "DE": {"standard": 19, "food": 7, "books": 7},
+@@ -10,4 +12,72 @@ TAX_RATES = {
+ 
+ def build_invoice(lines, coupon_cents: int, shipping_cents: int, region: str) -> dict:
+     """Build an invoice for an order. See docs/invoicing.md."""
+-    raise NotImplementedError
++    if region not in TAX_RATES:
++        raise ValueError(f"unknown region: {region}")
++    if not lines:
++        raise ValueError("lines must not be empty")
++    if coupon_cents < 0:
++        raise ValueError("coupon must not be negative")
++    if shipping_cents < 0:
++        raise ValueError("shipping must not be negative")
++
++    rates = TAX_RATES[region]
++    gross_amounts = []
++    categories = []
++    for sku, unit_price_cents, qty, category in lines:
++        if category not in rates:
++            raise ValueError(f"unknown category: {category}")
++        if qty < 1:
++            raise ValueError("qty must be at least 1")
++        if unit_price_cents < 0:
++            raise ValueError("price must not be negative")
++        gross_amounts.append(unit_price_cents * qty)
++        categories.append(category)
++
++    total_gross = sum(gross_amounts)
++    coupon = min(coupon_cents, total_gross)
++    discounts = [0] * len(lines)
++
++    if total_gross:
++        remainders = []
++        allocated = 0
++        for index, gross in enumerate(gross_amounts):
++            discounts[index], remainder = divmod(coupon * gross, total_gross)
++            remainders.append((remainder, index))
++            allocated += discounts[index]
++
++        # Largest fractional remainders receive the cents dropped by flooring.
++        for _, index in sorted(remainders, key=lambda item: (-item[0], item[1]))[: coupon - allocated]:
++            discounts[index] += 1
++
++    invoice_lines = []
++    for (sku, _unit_price_cents, _qty, _category), gross, discount, category in zip(
++        lines, gross_amounts, discounts, categories
++    ):
++        net = gross - discount
++        invoice_lines.append(
++            {
++                "sku": sku,
++                "gross_cents": gross,
++                "discount_cents": discount,
++                "net_cents": net,
++                "tax_cents": percent_of(net, rates[category]),
++            }
++        )
++
++    shipping_tax = (
++        percent_of(shipping_cents, rates["standard"])
++        if any(rates[category] > 0 for category in categories)
++        else 0
++    )
++    total = (
++        sum(line["net_cents"] + line["tax_cents"] for line in invoice_lines)
++        + shipping_cents
++        + shipping_tax
++    )
++    return {
++        "lines": invoice_lines,
++        "shipping_cents": shipping_cents,
++        "shipping_tax_cents": shipping_tax,
++        "total_cents": total,
++    }
+diff --git a/tests/test_invoice.py b/tests/test_invoice.py
+new file mode 100644
+index 0000000..21e405f
+--- /dev/null
++++ b/tests/test_invoice.py
+@@ -0,0 +1,84 @@
++import pytest
++
++from shoplib.invoice import build_invoice
++
++
++def test_coupon_uses_largest_remainders_and_preserves_input_order():
++    invoice = build_invoice(
++        [("a", 1, 1, "books"), ("b", 2, 1, "books"), ("c", 3, 1, "books")],
++        coupon_cents=2,
++        shipping_cents=0,
++        region="OR",
++    )
++
++    assert [line["discount_cents"] for line in invoice["lines"]] == [0, 1, 1]
++    assert [line["sku"] for line in invoice["lines"]] == ["a", "b", "c"]
++
++
++def test_coupon_tie_goes_to_earlier_line():
++    invoice = build_invoice(
++        [("first", 1, 1, "books"), ("second", 1, 1, "books"), ("third", 1, 1, "books")],
++        coupon_cents=2,
++        shipping_cents=0,
++        region="OR",
++    )
++
++    assert [line["discount_cents"] for line in invoice["lines"]] == [1, 1, 0]
++
++
++def test_coupon_is_capped_at_gross_and_zero_gross_allocates_nothing():
++    capped = build_invoice(
++        [("a", 10, 1, "books"), ("b", 20, 1, "books")],
++        coupon_cents=100,
++        shipping_cents=0,
++        region="OR",
++    )
++    zero = build_invoice(
++        [("zero", 0, 2, "books"), ("also-zero", 0, 4, "books")],
++        coupon_cents=100,
++        shipping_cents=0,
++        region="OR",
++    )
++
++    assert [line["discount_cents"] for line in capped["lines"]] == [10, 20]
++    assert [line["discount_cents"] for line in zero["lines"]] == [0, 0]
++
++
++def test_line_tax_rounds_per_line_and_shipping_uses_standard_rate():
++    invoice = build_invoice(
++        [("food", 50, 1, "food"), ("books", 50, 1, "books")],
++        coupon_cents=0,
++        shipping_cents=50,
++        region="DE",
++    )
++
++    assert [line["tax_cents"] for line in invoice["lines"]] == [4, 4]
++    assert invoice["shipping_tax_cents"] == 10
++    assert invoice["total_cents"] == 50 + 4 + 50 + 4 + 50 + 10
++
++
++def test_shipping_tax_requires_a_taxable_line_category():
++    books_only = build_invoice([("book", 100, 1, "books")], 0, 100, "SG")
++    food = build_invoice([("food", 100, 1, "food")], 0, 100, "SG")
++    all_zero_rates = build_invoice([("book", 100, 1, "books")], 0, 100, "OR")
++
++    assert books_only["shipping_tax_cents"] == 0
++    assert food["shipping_tax_cents"] == 9
++    assert all_zero_rates["shipping_tax_cents"] == 0
++
++
++@pytest.mark.parametrize(
++    "args",
++    [
++        ([("a", 1, 1, "food")], 0, 0, "XX"),
++        ([("a", 1, 1, "unknown")], 0, 0, "DE"),
++        ([], 0, 0, "DE"),
++        ([("a", 1, 0, "food")], 0, 0, "DE"),
++        ([("a", -1, 1, "food")], 0, 0, "DE"),
++        ([("a", 1, 1, "food")], -1, 0, "DE"),
++        ([("a", 1, 1, "food")], 0, -1, "DE"),
++    ],
++)
++def test_invalid_invoice_arguments_raise_value_error(args):
++    with pytest.raises(ValueError):
++        build_invoice(*args)

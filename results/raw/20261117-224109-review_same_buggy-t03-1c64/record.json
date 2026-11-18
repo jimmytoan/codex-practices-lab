@@ -1,0 +1,138 @@
+{
+  "run_id": "20261117-224109-review_same_buggy-t03-1c64",
+  "ts": "2026-11-17T14:42:00+00:00",
+  "tag": "full-terra",
+  "condition": "review_same_buggy",
+  "task": "t03-inventory-release",
+  "model": "gpt-6.1-terra",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "review_same",
+  "variant": "buggy",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 22.0,
+      "usage": {
+        "input_tokens": 46404,
+        "cached_input_tokens": 29972,
+        "cache_write_input_tokens": 16423,
+        "output_tokens": 594,
+        "reasoning_output_tokens": 64
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    },
+    {
+      "status": "ok",
+      "wall_s": 26.1,
+      "usage": {
+        "input_tokens": 116847,
+        "cached_input_tokens": 81565,
+        "cache_write_input_tokens": 35261,
+        "output_tokens": 1684,
+        "reasoning_output_tokens": 238
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 163251,
+    "cached_input_tokens": 111537,
+    "cache_write_input_tokens": 51684,
+    "output_tokens": 2278,
+    "reasoning_output_tokens": 302
+  },
+  "cost_usd": 0.14621,
+  "cost_usd_low": 0.0816,
+  "wall_s": 48.1,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_qty_must_be_positive[-1]",
+      "test_qty_must_be_positive[0]",
+      "test_release_all_then_reserve_again",
+      "test_release_more_than_reserved_changes_nothing",
+      "test_release_part",
+      "test_unknown_or_unreserved_sku"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "30 passed in 0.02s"
+    ]
+  },
+  "rule_followed": true,
+  "changed_files": [
+    "src/shoplib/inventory.py",
+    "tests/test_inventory.py"
+  ],
+  "out_of_scope": [],
+  "commands": 7,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6.1-terra",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      },
+      {
+        "model": "gpt-6.1-terra",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "applied_exactly": true,
+  "before_review": {
+    "passed": [
+      "test_qty_must_be_positive[-1]",
+      "test_release_all_then_reserve_again",
+      "test_release_part"
+    ],
+    "failed": [
+      "test_qty_must_be_positive[0]",
+      "test_release_more_than_reserved_changes_nothing",
+      "test_unknown_or_unreserved_sku"
+    ],
+    "error": null,
+    "ok": false
+  },
+  "findings": [
+    {
+      "file": "src/shoplib/inventory.py",
+      "description": "Fixed zero quantities being accepted."
+    },
+    {
+      "file": "src/shoplib/inventory.py",
+      "description": "Fixed releases exceeding reserved stock, including KeyError for unreserved SKUs. Added tests; all 30 pass."
+    }
+  ],
+  "bug_signatures": {
+    "checks-on-hand": [
+      "test_release_more_than_reserved_changes_nothing",
+      "test_unknown_or_unreserved_sku"
+    ],
+    "accepts-zero": [
+      "test_qty_must_be_positive[0]"
+    ]
+  },
+  "bugs_caught": [
+    "accepts-zero",
+    "checks-on-hand"
+  ],
+  "regressions": []
+}

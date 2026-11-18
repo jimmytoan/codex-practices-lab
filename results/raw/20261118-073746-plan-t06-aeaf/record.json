@@ -1,0 +1,107 @@
+{
+  "run_id": "20261118-073746-plan-t06-aeaf",
+  "ts": "2026-11-17T23:38:17+00:00",
+  "tag": "full-luna",
+  "condition": "plan",
+  "task": "t06-business-days",
+  "model": "gpt-6-luna",
+  "effort": "medium",
+  "codex_version": "codex-cli 0.169.0",
+  "agents": "short",
+  "prompt": "four_part",
+  "mode": "plan",
+  "variant": "",
+  "status": "ok",
+  "error": null,
+  "invocations": [
+    {
+      "status": "ok",
+      "wall_s": 8.0,
+      "usage": {
+        "input_tokens": 27642,
+        "cached_input_tokens": 13542,
+        "cache_write_input_tokens": 14094,
+        "output_tokens": 318,
+        "reasoning_output_tokens": 132
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    },
+    {
+      "status": "ok",
+      "wall_s": 22.1,
+      "usage": {
+        "input_tokens": 109884,
+        "cached_input_tokens": 92457,
+        "cache_write_input_tokens": 17406,
+        "output_tokens": 2052,
+        "reasoning_output_tokens": 685
+      },
+      "exit": 0,
+      "stderr_tail": ""
+    }
+  ],
+  "usage": {
+    "input_tokens": 137526,
+    "cached_input_tokens": 105999,
+    "cache_write_input_tokens": 31500,
+    "output_tokens": 2370,
+    "reasoning_output_tokens": 817
+  },
+  "cost_usd": 0.01012,
+  "cost_usd_low": 0.00619,
+  "wall_s": 30.1,
+  "passed": true,
+  "hidden": {
+    "passed": [
+      "test_backward",
+      "test_backward_from_weekend",
+      "test_backward_skips_holidays",
+      "test_forward_skips_holidays",
+      "test_forward_still_works",
+      "test_holiday_on_weekend_changes_nothing",
+      "test_round_trip[10]",
+      "test_round_trip[23]",
+      "test_round_trip[5]",
+      "test_zero_on_business_day",
+      "test_zero_on_holiday_moves_forward",
+      "test_zero_on_weekend_moves_forward"
+    ],
+    "failed": [],
+    "error": null,
+    "ok": true
+  },
+  "visible": {
+    "ok": true,
+    "tail": [
+      "24 passed in 0.02s"
+    ]
+  },
+  "rule_followed": null,
+  "changed_files": [
+    "src/shoplib/dates.py",
+    "tests/test_dates.py"
+  ],
+  "out_of_scope": [],
+  "commands": 5,
+  "peeked": [],
+  "rollout": {
+    "agents_loaded_bytes": 1056,
+    "agents_loaded_text_tail": "r depends on it.\n- Keep changes to the files the task needs.\n\n## Done means\n- The behaviour asked for, and the spec it refers to, holds, with tests for it in `tests/`.\n- `python -m pytest -q` passes.\n",
+    "turns": [
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "read-only"
+      },
+      {
+        "model": "gpt-6-luna",
+        "effort": "medium",
+        "sandbox": "workspace-write"
+      }
+    ],
+    "agents_loaded_has_rule": true
+  },
+  "plan_text": "1. Update `add_business_days` to count weekdays while excluding `holidays`, moving forward or backward as `n` specifies.\n2. Handle `n == 0` by returning `start` if it\u2019s a business day, otherwise the first business day after it.\n3. Add focused tests in `tests/test_dates.py` for holidays, negative counts, and zero; then run `python -m pytest -q`.",
+  "edits_during_plan": []
+}

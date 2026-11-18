@@ -1,0 +1,30 @@
+diff --git a/src/shoplib/inventory.py b/src/shoplib/inventory.py
+index 69cd1dc..7aac136 100644
+--- a/src/shoplib/inventory.py
++++ b/src/shoplib/inventory.py
+@@ -1,5 +1,7 @@
+ """Stock levels: on hand, reserved for orders, and available."""
+ 
++from .errors import ShopError
++
+ 
+ class Inventory:
+     def __init__(self):
+@@ -32,10 +34,15 @@ class Inventory:
+         """Give `qty` reserved units back to available.
+ 
+         `qty` must be positive. Releasing more than is currently reserved for
+-        the SKU (including a SKU with nothing reserved) raises ValueError and
++        the SKU (including a SKU with nothing reserved) raises ShopError and
+         changes nothing.
+         """
+-        raise NotImplementedError
++        if qty <= 0:
++            raise ShopError("qty must be positive")
++        currently_reserved = self.reserved(sku)
++        if qty > currently_reserved:
++            raise ShopError(f"only {currently_reserved} of {sku} reserved")
++        self._reserved[sku] = currently_reserved - qty
+ 
+     def ship(self, sku: str, qty: int) -> None:
+         """Ship `qty` reserved units: they leave both reserved and on hand."""
