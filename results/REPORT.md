@@ -75,7 +75,8 @@ Every number in the blog draft comes from one of these files, all generated from
     wall-clock time.
   - Its own test expects a refund at `2026-11-20T03:59:00+08:00` on store day 2026-11-20. The spec says
     2026-11-19, because the day starts at 04:00 local.
-  - Its 25 tests passed, and its final message says it converts each timestamp to the shop's local time.
+  - Its 25 tests passed. Its progress note before the final test run says "The implementation now converts each zoned
+    timestamp to the shop's local time".
   - Checked in `diff.patch`, `events-1.jsonl`, `events-2.jsonl` and `record.json` (`plan_text`).
 - **Reading the truncated file** (`20261117-214459-rule_late-t03-0c71`, Terra). It ran
   `tail -80 AGENTS.md`, then `rg -n 'ShopError|Error handling' src tests AGENTS.md`, then wrote "The
